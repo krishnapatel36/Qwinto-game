@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Qwinto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <img src="images/title.png" alt="Qwinto" class="title">
+</header>
+
+<div id="setup">
+  <h2>Select Game Mode</h2>
+  <button id="hh">Human vs Human</button>
+  <button id="ha">Human vs AI</button>
+</div>
+
+<section class="controls" style="display:none;">
+  <div class="dice">
+    <label><input type="checkbox" value="0" id="die-green" checked> Green</label>
+    <label><input type="checkbox" value="1" id="die-yellow"> Yellow</label>
+    <label><input type="checkbox" value="2" id="die-blue"> Blue</label>
+    <button id="rollBtn">Roll Dice</button>
+    <button id="passBtn" style="display:none;">Skip / Pass This Roll</button>
+  </div>
+  <div id="rollResult"></div>
+  <div id="playerInfo"></div>
+  
+  <!-- Penalties indicator -->
+  <div id="penalties-display" style="margin-top: 10px; font-weight: bold; color: #b22222;"></div>
+</section>
+
+<div id="game-area">
+  <div class="board-container">
+    <img src="images/game_board.png" class="board-image">
+    <!-- Interactive Overlay Cells -->
+    <div id="overlay"></div>
+  </div>
+</div>
+
+<div id="score-screen" style="display:none; text-align:center; margin-top:20px;">
+  <h2>Game Over!</h2>
+  <div id="score-details"></div>
+  <button id="restart">Restart</button>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
