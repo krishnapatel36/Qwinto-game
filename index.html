@@ -1,54 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Qwinto</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwinto Digital Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <img src="title.png" alt="Qwinto" class="title">
-</header>
+    <img src="images/title.png"/>
+    <div class="setup-screen" id="setupScreen">
+        <p style="font-size: 18px; font-weight: 500;">Choose your game format:</p>
+        <button class="btn" onclick="startGame('PvP')">Human vs Human (Local)</button>
+        <button class="btn" onclick="startGame('Ai')">Human vs AI</button>
+    </div>
 
-<div id="setup">
-  <h2>Select Game Mode</h2>
-  <button id="hh">Human vs Human</button>
-  <button id="ha">Human vs AI</button>
-</div>
+    <div class="transition-screen" id="transitionScreen" style="display:none;">
+        <h2 id="transitionMessage">Pass the device to Player 2</h2>
+        <button class="btn" onclick="revealNextTurn()">Ready to Play</button>
+    </div>
 
-<section class="controls" style="display:none;">
-  <div class="dice">
-    <label><input type="checkbox" value="0" id="die-green" checked> Green</label>
-    <label><input type="checkbox" value="1" id="die-yellow"> Yellow</label>
-    <label><input type="checkbox" value="2" id="die-blue"> Blue</label>
-    <button id="rollBtn">Roll Dice</button>
-    <button id="passBtn" style="display:none;">Skip / Pass This Roll</button>
-  </div>
-  <div id="rollResult"></div>
-  <div id="playerInfo"></div>
-  
-  <!-- Penalties indicator -->
-  <div id="penalties-display" style="margin-top: 10px; font-weight: bold; color: #b22222;"></div>
-</section>
+    <div class="status-banner" id="statusBanner" style="display:none;">Select a Mode to Start Playing!</div>
 
-<div id="game-area">
-  <div class="board-container">
-    <img src="game_board.png" class="board-image">
-    <!-- Interactive Overlay Cells -->
-    <div id="overlay"></div>
-  </div>
-</div>
+    <div class="dice-panel" id="dicePanel" style="display:none;">
+        <div>
+            <span style="font-size: 13px; display:block; color:#777; margin-bottom:4px;">Click dice to toggle colors:</span>
+            <div class="dice-container">
+                <div class="die orange-die selected" data-color="orange" onclick="toggleDie(this)">O</div>
+                <div class="die yellow-die selected" data-color="yellow" onclick="toggleDie(this)">Y</div>
+                <div class="die purple-die selected" data-color="purple" onclick="toggleDie(this)">P</div>
+            </div>
+        </div>
+        <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+        <div class="roll-result" id="rollResult">-</div>
+        <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777; box-shadow: 0 4px #555;">Pass Turn</button>
+    </div>
 
-<div id="score-screen" style="display:none; text-align:center; margin-top:20px;">
-  <h2>Game Over!</h2>
-  <div id="score-details"></div>
-  <button id="restart">Restart</button>
-</div>
-
+    <div class="game-area" id="gameArea"></div>
 <script src="script.js"></script>
 </body>
 </html>
