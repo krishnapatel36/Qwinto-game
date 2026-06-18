@@ -1,419 +1,334 @@
-// =======================
-// GAME STATE
-// =======================
-const game = {
-  mode: null,               // "HUMAN_HUMAN" or "HUMAN_AI"
-  activePlayer: 0,          // The player whose turn it is to roll
-  currentTurnPlayer: 0,     // The player currently making a choice (Rolling or Placing)
-  phase: "ROLL",            // "ROLL" or "PLACE"
-  allowedRows: [],          // Rows matching the color of rolled dice
-  lastRoll: null,
-  players: []
+
+// --- Game Configurations & State ---
+let gameMode = 'PvP';
+let players = [];
+let activePlayerIndex = 0;
+let currentRollTotal = 0;
+let activeColorsRolled = [];
+let hasRolledThisTurn = false;
+let isTransitioning = false;
+
+const rowLayouts = {
+  orange: [1, 2, 1, 0, 1, 2, 1, 1, 1, 1],
+  yellow: [1, 1, 1, 1, 1, 0, 1, 2, 1, 1],
+  purple: [1, 1, 2, 1, 0, 1, 1, 1, 1, 2]
 };
 
-// Tracks setup based on official Qwinto boards
-// Row 0 = Green, Row 1 = Yellow, Row 2 = Blue
-// Columns shifted per row on official sheets, but mapped 0-9 linearly here
-const PENTAGONS = [
-  { row: 0, col: 1 }, { row: 0, col: 5 },
-  { row: 1, col: 2 }, { row: 1, col: 7 },
-  { row: 2, col: 3 }, { row: 2, col: 8 }
-];
-
-// =======================
-// INITIALIZATION
-// =======================
-document.getElementById("hh").onclick = () => startGame("HUMAN_HUMAN");
-document.getElementById("ha").onclick = () => startGame("HUMAN_AI");
-document.getElementById("restart").onclick = restartGame;
-document.getElementById("rollBtn").onclick = handleRoll;
-document.getElementById("passBtn").onclick = handlePass;
+class Player {
+  constructor(name, isAi = false) {
+    this.name = name;
+    this.isAi = isAi;
+    this.missteps = 0;
+    this.boards = {
+      orange: Array(10).fill(null),
+      yellow: Array(10).fill(null),
+      purple: Array(10).fill(null)
+    };
+    this.score = 0;
+  }
+}
 
 function startGame(mode) {
-  game.mode = mode;
-  game.activePlayer = 0;
-  game.currentTurnPlayer = 0;
-  game.phase = "ROLL";
-  game.lastRoll = null;
-  game.allowedRows = [];
+  gameMode = mode;
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('statusBanner').style.display = 'block';
+  document.getElementById('dicePanel').style.display = 'flex';
 
-  game.players = [
-    { type: "human", board: Array.from({ length: 3 }, () => Array(10).fill(null)), penalties: 0 },
-    { type: mode === "HUMAN_AI" ? "ai" : "human", board: Array.from({ length: 3 }, () => Array(10).fill(null)), penalties: 0 }
-  ];
-
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("score-screen").style.display = "none";
-  document.querySelector(".controls").style.display = "block";
-  document.querySelector(".board-container").style.display = "block";
-  document.getElementById("overlay").style.pointerEvents = "auto";
-
-  buildBoardUI();
-  updateUI();
-}
-
-// =======================
-// BOARD UI BUILDER
-// =======================
-function buildBoardUI() {
-  const overlay = document.getElementById("overlay");
-  overlay.innerHTML = ""; // Clear old elements
-
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 10; col++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.dataset.row = row;
-      cell.dataset.col = col;
-
-      // Position calculations keeping your original geometry intact
-      cell.style.width = "8%";
-      cell.style.height = "8%";
-      cell.style.left = `${7 + col * 9}%`;
-      cell.style.top = `${22 + row * 16}%`;
-
-      cell.addEventListener("click", () => handleCellClick(row, col));
-      overlay.appendChild(cell);
-    }
-  }
-}
-
-// =======================
-// UI REFRESH LAYER
-// =======================
-function updateUI() {
-  const activeP = game.players[game.activePlayer];
-  const currentP = game.players[game.currentTurnPlayer];
-
-  // Top header statuses
-  if (game.phase === "ROLL") {
-    document.getElementById("playerInfo").textContent = 
-      `Player ${game.activePlayer + 1} (${activeP.type.toUpperCase()})'s turn to roll!`;
-    document.getElementById("rollBtn").style.display = "inline-block";
-    document.getElementById("passBtn").style.display = "none";
+  players = [new Player("Player 1")];
+  if (mode === 'PvP') {
+    players.push(new Player("Player 2"));
   } else {
-    document.getElementById("playerInfo").textContent = 
-      `Viewing/Placing for Player ${game.currentTurnPlayer + 1} (${currentP.type.toUpperCase()})`;
-    
-    // Non-active human players can voluntarily skip without misplay penalty
-    if (game.currentTurnPlayer !== game.activePlayer && currentP.type === "human") {
-      document.getElementById("passBtn").textContent = "Skip this roll (No penalty)";
-      document.getElementById("passBtn").style.display = "inline-block";
-    } else if (game.currentTurnPlayer === game.activePlayer && currentP.type === "human") {
-      document.getElementById("passBtn").textContent = "No valid move (Take Misplay Penalty)";
-      document.getElementById("passBtn").style.display = "inline-block";
-    } else {
-      document.getElementById("passBtn").style.display = "none";
-    }
-    document.getElementById("rollBtn").style.display = "none";
+    players.push(new Player("Qwinto AI", true));
   }
 
-  // Draw penalties summary string
-  document.getElementById("penalties-display").textContent = 
-    `Penalties -> P1: ${game.players[0].penalties}/4 | P2: ${game.players[1].penalties}/4`;
-
-  // Synchronize board cells visual grid state with the *current choice player's* board matrix
-  const boardState = currentP.board;
-  document.querySelectorAll(".cell").forEach(cell => {
-    const r = parseInt(cell.dataset.row);
-    const c = parseInt(cell.dataset.col);
-    const val = boardState[r][c];
-
-    if (val !== null) {
-      cell.classList.add("filled");
-      cell.innerHTML = `<span>${val}</span>`;
-    } else {
-      cell.classList.remove("filled");
-      cell.innerHTML = "";
-    }
-  });
+  activePlayerIndex = 0;
+  prepareTurnDisplay();
 }
 
-// =======================
-// DICE ROLLING LOGIC
-// =======================
-function handleRoll() {
-  if (game.phase !== "ROLL") return;
+function prepareTurnDisplay() {
+  const activePlayer = players[activePlayerIndex];
 
-  const checkboxes = [
-    document.getElementById("die-green"),
-    document.getElementById("die-yellow"),
-    document.getElementById("die-blue")
-  ];
+  // If PvP mode and it's turning to player 2 (or back to player 1), display the device-pass cover screen
+  if (gameMode === 'PvP' && hasRolledThisTurn) {
+    isTransitioning = true;
+    document.getElementById('dicePanel').style.display = 'none';
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('statusBanner').style.display = 'none';
 
-  const selectedRows = [];
-  checkboxes.forEach((cb, idx) => {
-    if (cb.checked) selectedRows.push(idx);
-  });
+    document.getElementById('transitionMessage').innerText = `Pass device to ${activePlayer.name}`;
+    document.getElementById('transitionScreen').style.display = 'block';
+  } else {
+    revealNextTurn();
+  }
+}
 
-  if (selectedRows.length === 0) {
+function revealNextTurn() {
+  isTransitioning = false;
+  document.getElementById('transitionScreen').style.display = 'none';
+  document.getElementById('dicePanel').style.display = 'flex';
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('statusBanner').style.display = 'block';
+
+  hasRolledThisTurn = false;
+  document.getElementById('rollResult').innerText = "-";
+  document.getElementById('rollBtn').disabled = false;
+
+  const activePlayer = players[activePlayerIndex];
+  document.getElementById('statusBanner').innerText = `${activePlayer.name}'s Turn to Roll!`;
+
+  // Reset dice visual choice selection availability states
+  document.querySelectorAll('.die').forEach(d => d.classList.add('selected'));
+
+  renderActiveBoard();
+
+  if (activePlayer.isAi) {
+    setTimeout(executeAiTurn, 1000);
+  }
+}
+
+function toggleDie(dieEl) {
+  if (hasRolledThisTurn || isTransitioning) return;
+  dieEl.classList.toggle('selected');
+}
+
+function rollDice() {
+  const selectedDice = document.querySelectorAll('.die.selected');
+  if (selectedDice.length === 0) {
     alert("Select at least one die color to roll!");
     return;
   }
 
-  let sum = 0;
-  selectedRows.forEach(() => {
-    sum += Math.floor(Math.random() * 6) + 1;
+  activeColorsRolled = [];
+  currentRollTotal = 0;
+
+  selectedDice.forEach(die => {
+    const color = die.getAttribute('data-color');
+    const val = Math.floor(Math.random() * 6) + 1;
+    currentRollTotal += val;
+    activeColorsRolled.push(color);
   });
 
-  game.lastRoll = sum;
-  game.allowedRows = selectedRows;
-  game.phase = "PLACE";
-  
-  // Start action flow with the active roller
-  game.currentTurnPlayer = game.activePlayer;
+  document.getElementById('rollResult').innerText = currentRollTotal;
+  hasRolledThisTurn = true;
+  document.getElementById('rollBtn').disabled = true;
 
-  document.getElementById("rollResult").textContent = `Rolled Sum: ${sum} (Allowed Tracks: ${selectedRows.map(r => ['Green','Yellow','Blue'][r]).join(', ')})`;
-  
-  updateUI();
-
-  if (game.players[game.currentTurnPlayer].type === "ai") {
-    setTimeout(aiTurn, 900);
-  }
+  document.getElementById('statusBanner').innerText =
+    `Rolled: ${currentRollTotal}! Click an open cell on your board or Pass.`;
 }
 
-// =======================
-// MOVE VALIDATION ENGINE
-// =======================
-function isValidPlacement(playerIdx, row, col, value) {
-  // 1. Is the track color matched by chosen rolled dice?
-  if (!game.allowedRows.includes(row)) return false;
+function isValidMove(player, color, index, value) {
+  if (!activeColorsRolled.includes(color)) return false;
 
-  const board = game.players[playerIdx].board;
-  if (board[row][col] !== null) return false;
+  const row = player.boards[color];
+  if (row[index] !== null) return false;
 
-  // 2. Row Ascending Validation (Left-to-Right strict sort)
-  // Check Left side boundaries
-  for (let c = col - 1; c >= 0; c--) {
-    if (board[row][c] !== null) {
-      if (board[row][c] >= value) return false;
-      break; 
-    }
+  // Ascending sort checker loop
+  for (let i = 0; i < index; i++) {
+    if (row[i] !== null && row[i] >= value) return false;
   }
-  // Check Right side boundaries
-  for (let c = col + 1; c < 10; c++) {
-    if (board[row][c] !== null) {
-      if (board[row][c] <= value) return false;
-      break;
-    }
+  for (let i = index + 1; i < row.length; i++) {
+    if (row[i] !== null && row[i] <= value) return false;
   }
 
-  // 3. Vertical Column Duplication Check
-  for (let r = 0; r < 3; r++) {
-    if (r !== row && board[r][col] === value) {
-      return false; 
+  // Column vertical block alignment validator
+  const checkVerticalOverlap = (otherColor, adjIndex) => {
+    if (adjIndex >= 0 && adjIndex < 10) {
+      if (player.boards[otherColor][adjIndex] === value) return false;
     }
+    return true;
+  };
+
+  if (color === 'orange') {
+    if (!checkVerticalOverlap('yellow', index + 1)) return false;
+    if (!checkVerticalOverlap('purple', index + 2)) return false;
+  } else if (color === 'yellow') {
+    if (!checkVerticalOverlap('orange', index - 1)) return false;
+    if (!checkVerticalOverlap('purple', index + 1)) return false;
+  } else if (color === 'purple') {
+    if (!checkVerticalOverlap('orange', index - 2)) return false;
+    if (!checkVerticalOverlap('yellow', index - 1)) return false;
   }
 
   return true;
 }
 
-// Checks if any valid cell exists on the board for a specific player
-function hasAnyValidMoves(playerIdx, value) {
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 10; c++) {
-      if (isValidPlacement(playerIdx, r, c, value)) return true;
-    }
+function handleCellClick(color, index) {
+  if (!hasRolledThisTurn || isTransitioning) return;
+
+  const player = players[activePlayerIndex];
+
+  if (isValidMove(player, color, index, currentRollTotal)) {
+    player.boards[color][index] = currentRollTotal;
+    calculateScore(player);
+    advanceTurn();
+  } else {
+    alert("Invalid Move! Numbers must strictly increase from left to right, and no duplicate values are allowed in the same column alignment.");
   }
-  return false;
 }
 
-// =======================
-// CELL CLICK / ACTION
-// =======================
-function handleCellClick(row, col) {
-  if (game.phase !== "PLACE") return;
-  
-  const currentP = game.players[game.currentTurnPlayer];
-  if (currentP.type !== "human") return;
+function handlePassTurn() {
+  if (!hasRolledThisTurn || isTransitioning) return;
 
-  const value = game.lastRoll;
-
-  if (!isValidPlacement(game.currentTurnPlayer, row, col, value)) {
-    alert("Invalid move! Must be ascending color track, matching rolled dice color, and no duplicated numbers in the column.");
-    return;
+  const player = players[activePlayerIndex];
+  if (player.missteps < 4) {
+    player.missteps++;
+    calculateScore(player);
   }
-
-  // Commit placement update
-  currentP.board[row][col] = value;
-  advanceTurnFlow();
+  advanceTurn();
 }
 
-function handlePass() {
-  if (game.phase !== "PLACE") return;
-
-  const currentP = game.players[game.currentTurnPlayer];
-  
-  // Active player handles misplay penalty box ticks
-  if (game.currentTurnPlayer === game.activePlayer) {
-    if (hasAnyValidMoves(game.currentTurnPlayer, game.lastRoll)) {
-      const confirmForce = confirm("You have valid placement spaces. Are you sure you want to pass and receive a Misplay Penalty (-5 pts)?");
-      if (!confirmForce) return;
-    }
-    currentP.penalties++;
-  }
-
-  advanceTurnFlow();
-}
-
-// =======================
-// TURN & PHASE CONTROL
-// =======================
-function advanceTurnFlow() {
-  if (checkEndGameConditions()) {
+function advanceTurn() {
+  // Checking Endgame Trigger conditions before shuffling index loop pointers
+  const over = players.some(p => p.missteps >= 4 || checkRowsFilled(p) >= 2);
+  if (over) {
+    renderActiveBoard();
     endGame();
     return;
   }
 
-  // If active roller finished processing, pass opportunity to passive player next
-  if (game.currentTurnPlayer === game.activePlayer) {
-    game.currentTurnPlayer = game.activePlayer === 0 ? 1 : 0;
-    updateUI();
-
-    if (game.players[game.currentTurnPlayer].type === "ai") {
-      setTimeout(aiTurn, 900);
-    }
-  } else {
-    // Both players processed this roll result -> Switch turn to next round active roller
-    game.phase = "ROLL";
-    game.activePlayer = game.activePlayer === 0 ? 1 : 0;
-    game.currentTurnPlayer = game.activePlayer;
-    game.lastRoll = null;
-    document.getElementById("rollResult").textContent = "";
-    updateUI();
-
-    if (game.players[game.activePlayer].type === "ai") {
-      setTimeout(() => {
-        // Auto pick a random dice composition configuration for AI turn
-        const checkboxes = [
-          document.getElementById("die-green"),
-          document.getElementById("die-yellow"),
-          document.getElementById("die-blue")
-        ];
-        checkboxes.forEach(cb => cb.checked = Math.random() > 0.4);
-        // Force at least 1 checked
-        if (!checkboxes.some(cb => cb.checked)) checkboxes[0].checked = true;
-        handleRoll();
-      }, 1000);
-    }
-  }
+  activePlayerIndex = (activePlayerIndex + 1) % players.length;
+  prepareTurnDisplay();
 }
 
-// =======================
-// COMPUTER AI LOGIC
-// =======================
-function aiTurn() {
-  const value = game.lastRoll;
-  const playerIdx = game.currentTurnPlayer;
-  const isRoller = (playerIdx === game.activePlayer);
-
-  // Search for the first compliant valid position matrix entry
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 10; c++) {
-      if (isValidPlacement(playerIdx, r, c, value)) {
-        game.players[playerIdx].board[r][c] = value;
-        advanceTurnFlow();
-        return;
-      }
-    }
+function checkRowsFilled(p) {
+  let fullRows = 0;
+  for (let col in p.boards) {
+    const spacesCount = rowLayouts[col].filter(x => x !== 0).length;
+    const filledCount = p.boards[col].filter(x => x !== null).length;
+    if (spacesCount === filledCount) fullRows++;
   }
-
-  // If AI is active roller and could not place anywhere, register penalty misplay block
-  if (isRoller) {
-    game.players[playerIdx].penalties++;
-  }
-  advanceTurnFlow();
+  return fullRows;
 }
 
-// =======================
-// GAME OVER DETECTION
-// =======================
-function checkEndGameConditions() {
-  for (let p = 0; p < game.players.length; p++) {
-    const player = game.players[p];
-    
-    // Rule Condition 1: 4 Misplay blocks crossed out
-    if (player.penalties >= 4) return true;
+function calculateScore(player) {
+  let total = 0;
+  for (let rowColor in player.boards) {
+    const layout = rowLayouts[rowColor];
+    const boardRow = player.boards[rowColor];
+    const totalSlots = layout.filter(x => x !== 0).length;
+    const filledSlots = boardRow.filter(x => x !== null).length;
 
-    // Rule Condition 2: 2 completely filled tracks
-    let filledRowsCount = 0;
-    for (let r = 0; r < 3; r++) {
-      let isFilled = true;
-      for (let c = 0; c < 10; c++) {
-        if (player.board[r][c] === null) {
-          isFilled = false;
-          break;
-        }
-      }
-      if (isFilled) filledRowsCount++;
-    }
-    if (filledRowsCount >= 2) return true;
-  }
-  return false;
-}
-
-// =======================
-// SCORING ENGINE
-// =======================
-function calculateScore(playerIdx) {
-  const player = game.players[playerIdx];
-  const board = player.board;
-  let totalScore = 0;
-
-  // 1. Compute Tracks Rows Scores
-  for (let r = 0; r < 3; r++) {
-    let filledCount = 0;
-    let rightmostVal = 0;
-    for (let c = 0; c < 10; c++) {
-      if (board[r][c] !== null) {
-        filledCount++;
-        rightmostVal = board[r][c]; // Safely catches last absolute entry inside row mapping array order
-      }
-    }
-    if (filledCount === 10) {
-      totalScore += rightmostVal; // Score value of rightmost number if complete
+    if (filledSlots === totalSlots) {
+      total += boardRow[boardRow.length - 1];
     } else {
-      totalScore += filledCount;  // Score 1 pt per space filled if incomplete
+      total += filledSlots;
     }
   }
-
-  // 2. Shaded Column Pentagon Scores
-  PENTAGONS.forEach(pentagon => {
-    const { row, col } = pentagon;
-    // Check if entire column index contains inputs across all 3 color tracks
-    if (board[0][col] !== null && board[1][col] !== null && board[2][col] !== null) {
-      totalScore += board[row][col];
-    }
-  });
-
-  // 3. Deduct Misplay Penalty Points
-  totalScore -= (player.penalties * 5);
-
-  return totalScore;
+  total -= (player.missteps * 5);
+  player.score = total;
 }
 
 function endGame() {
-  document.querySelector(".controls").style.display = "none";
-  document.querySelector(".board-container").style.display = "none";
-  document.getElementById("overlay").style.pointerEvents = "none";
-
-  const score1 = calculateScore(0);
-  const score2 = calculateScore(1);
-
-  let resultsHtml = `
-    <p><strong>Player 1 Score:</strong> ${score1} pts (Penalties taken: ${game.players[0].penalties})</p>
-    <p><strong>Player 2 Score:</strong> ${score2} pts (Penalties taken: ${game.players[1].penalties})</p>
-    <h3>${score1 === score2 ? "It's a Draw Match!" : (score1 > score2 ? "Player 1 Wins!" : "Player 2 Wins!")}</h3>
-  `;
-
-  document.getElementById("score-details").innerHTML = resultsHtml;
-  document.getElementById("score-screen").style.display = "block";
+  document.getElementById('dicePanel').style.display = 'none';
+  let winnerText = "Game Over! Final Results:\n";
+  players.forEach(p => {
+    winnerText += `${p.name}: ${p.score} points\n`;
+  });
+  document.getElementById('statusBanner').innerText = winnerText;
+  alert(winnerText);
 }
 
-function restartGame() {
-  document.getElementById("score-screen").style.display = "none";
-  document.getElementById("setup").style.display = "block";
-  document.getElementById("playerInfo").textContent = "";
-  document.getElementById("rollResult").textContent = "";
-  game.mode = null;
+function executeAiTurn() {
+  activeColorsRolled = ['orange', 'yellow', 'purple'].filter(() => Math.random() > 0.3);
+  if (activeColorsRolled.length === 0) activeColorsRolled = ['yellow'];
+
+  currentRollTotal = 0;
+  activeColorsRolled.forEach(() => {
+    currentRollTotal += Math.floor(Math.random() * 6) + 1;
+  });
+
+  document.getElementById('rollResult').innerText = currentRollTotal;
+  hasRolledThisTurn = true;
+
+  const ai = players[activePlayerIndex];
+  let moved = false;
+
+  for (let color of activeColorsRolled) {
+    for (let i = 0; i < 10; i++) {
+      if (rowLayouts[color][i] !== 0 && isValidMove(ai, color, i, currentRollTotal)) {
+        ai.boards[color][i] = currentRollTotal;
+        calculateScore(ai);
+        moved = true;
+        break;
+      }
+    }
+    if (moved) break;
+  }
+
+  if (!moved) {
+    ai.missteps++;
+    calculateScore(ai);
+  }
+
+  setTimeout(() => {
+    advanceTurn();
+  }, 1500);
+}
+
+/* --- Fixed Visual Render Engine --- */
+function renderActiveBoard() {
+  const area = document.getElementById('gameArea');
+  area.innerHTML = '';
+
+  // Displays ONLY the active player's scorecard element profile
+  const player = players[activePlayerIndex];
+
+  const boardWrap = document.createElement('div');
+  boardWrap.className = `player-board`;
+
+  boardWrap.innerHTML = `<div class="player-name">${player.name}'s Scorecard</div>`;
+
+  // Render Tracks inside the master column alignment grid wrapper
+  ['orange', 'yellow', 'purple'].forEach(color => {
+    const container = document.createElement('div');
+    container.className = 'row-container';
+
+    const rowDiv = document.createElement('div');
+    rowDiv.className = `grid-row ${color}-bar`;
+
+    rowLayouts[color].forEach((type, index) => {
+      const cell = document.createElement('div');
+      if (type === 0) {
+        cell.className = 'cell empty-slot';
+      } else {
+        const shapeClass = (type === 1) ? 'circle' : 'pentagon';
+        cell.className = `cell ${shapeClass}`;
+
+        const val = player.boards[color][index];
+        if (val !== null) {
+          cell.innerText = val;
+          cell.classList.add('filled');
+        }
+
+        cell.onclick = () => handleCellClick(color, index);
+      }
+      rowDiv.appendChild(cell);
+    });
+
+    container.appendChild(rowDiv);
+    boardWrap.appendChild(container);
+  });
+
+  // Bottom Dashboard metrics panel info
+  const summary = document.createElement('div');
+  summary.style.display = 'flex';
+  summary.style.justifyContent = 'space-between';
+  summary.style.alignItems = 'center';
+  summary.style.marginTop = '20px';
+
+  let misstepHtml = '';
+  for (let m = 1; m <= 4; m++) {
+    misstepHtml += `<div class="misstep-box ${m <= player.missteps ? 'checked' : ''}">${m <= player.missteps ? 'X' : ''}</div>`;
+  }
+
+  summary.innerHTML = `
+            <div class="misstep-container">
+                <span style="font-size:15px; font-weight:bold; margin-right:8px; color:#555">Missteps (-5pt):</span>
+                ${misstepHtml}
+            </div>
+            <div class="score-display">Total Score: ${player.score}</div>
+        `;
+
+  boardWrap.appendChild(summary);
+  area.appendChild(boardWrap);
 }
