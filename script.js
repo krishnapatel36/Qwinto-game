@@ -7,7 +7,8 @@ let currentRollTotal = 0;
 let activeColorsRolled = [];
 let hasRolledThisTurn = false;
 let isTransitioning = false;
-let activePlayerPlaced = false; // Tracks if the roller used the number
+let activePlayerPlaced = false; 
+let isGameOver = false;
 
 const rowLayouts = {
     orange: [1, 2, 1, 0, 1, 2, 1, 1, 1, 1], 
@@ -31,6 +32,7 @@ class Player {
 
 function startGame(mode) {
     gameMode = mode;
+    isGameOver = false;
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('statusBanner').style.display = 'block';
     document.getElementById('dicePanel').style.display = 'flex';
@@ -49,7 +51,7 @@ function startGame(mode) {
 function startNewTurnCycle() {
     hasRolledThisTurn = false;
     activePlayerPlaced = false;
-    evaluationPhase = activePlayerIndex; // The roller always evaluates first
+    evaluationPhase = activePlayerIndex; 
     
     document.getElementById('rollResult').innerText = "-";
     document.getElementById('rollBtn').disabled = false;
@@ -68,7 +70,7 @@ function startNewTurnCycle() {
 }
 
 function toggleDie(dieEl) {
-    if (hasRolledThisTurn || isTransitioning) return;
+    if (hasRolledThisTurn || isTransitioning || isGameOver) return;
     dieEl.classList.toggle('selected');
 }
 
@@ -100,12 +102,10 @@ function promptCurrentEvaluatingPlayer() {
     const evaluatingPlayer = players[evaluationPhase];
     
     if (evaluationPhase === activePlayerIndex) {
-        // The player who rolled must use it or take a penalty
         document.getElementById('passBtn').innerText = "Take Misstep Penalty";
         document.getElementById('statusBanner').innerText = 
             `[ROLLER] ${evaluatingPlayer.name}: You rolled ${currentRollTotal}! Place it on a valid cell or accept a Misstep penalty.`;
     } else {
-        // The passive player gets a free optional choice
         document.getElementById('passBtn').innerText = "Skip / Do Nothing";
         document.getElementById('statusBanner').innerText = 
             `[PASSIVE] ${evaluatingPlayer.name}: You can optionally use ${activePlayerIndex === 0 ? 'Player 1' : 'Player 2'}'s roll of ${currentRollTotal}.`;
@@ -115,7 +115,7 @@ function promptCurrentEvaluatingPlayer() {
 }
 
 function handleCellClick(color, index) {
-    if (!hasRolledThisTurn || isTransitioning) return;
+    if (!hasRolledThisTurn || isTransitioning || isGameOver) return;
 
     const player = players[evaluationPhase];
     
@@ -134,11 +134,10 @@ function handleCellClick(color, index) {
 }
 
 function handlePassTurn() {
-    if (!hasRolledThisTurn || isTransitioning) return;
+    if (!hasRolledThisTurn || isTransitioning || isGameOver) return;
     
     const player = players[evaluationPhase];
     
-    // Penalty only applies if you are the active roller and choose to pass
     if (evaluationPhase === activePlayerIndex) {
         if (player.missteps < 4) {
             player.missteps++;
@@ -151,10 +150,8 @@ function handlePassTurn() {
 
 function advanceEvaluation() {
     if (gameMode === 'PvP' && evaluationPhase === activePlayerIndex) {
-        // Move to the passive player's selection phase
         evaluationPhase = (activePlayerIndex + 1) % players.length;
         
-        // Trigger screen block transition to hand over device secretly
         isTransitioning = true;
         document.getElementById('dicePanel').style.display = 'none';
         document.getElementById('gameArea').style.display = 'none';
@@ -163,7 +160,6 @@ function advanceEvaluation() {
         document.getElementById('transitionMessage').innerText = `Pass device to ${players[evaluationPhase].name} to use the roll of ${currentRollTotal}`;
         document.getElementById('transitionScreen').style.display = 'block';
     } else {
-        // Both players have evaluated this roll, check game end status or switch turn cycle
         checkAndCleanTurnCycle();
     }
 }
@@ -185,7 +181,6 @@ function checkAndCleanTurnCycle() {
         return;
     }
 
-    // Change the primary active roller pointer to the next player
     activePlayerIndex = (activePlayerIndex + 1) % players.length;
     startNewTurnCycle();
 }
@@ -234,8 +229,11 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
+// --- Corrected Qwinto Rule Scorer with Precise Column Alignments ---
 function calculateScore(player) {
     let total = 0;
+
+    // 1. Calculate Row Points
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
@@ -243,33 +241,53 @@ function calculateScore(player) {
         const filledSlots = boardRow.filter(x => x !== null).length;
 
         if (filledSlots === totalSlots) {
-            total += boardRow[boardRow.length - 1];
+            // Row complete: points equal the value of the very last filled space in that row
+            // We find the last element that isn't null
+            const validNumbers = boardRow.filter(x => x !== null);
+            total += validNumbers[validNumbers.length - 1];
         } else {
+            // Row incomplete: 1 point per entered number
             total += filledSlots;
         }
     }
+
+    // 2. Vertical Column Pentagon Bonus Points (Checks if all 3 slots are completely filled)
+    
+    // Column Pentagon A (Purple Pentagon at index 3): Stacks with Orange[1] and Yellow[2]
+    if (player.boards.orange[1] !== null && player.boards.yellow[2] !== null && player.boards.purple[3] !== null) {
+        total += player.boards.purple[3]; 
+    }
+    
+    // Column Pentagon B (Orange Pentagon at index 5): Stacks with Yellow[6] and Purple[7]
+    if (player.boards.orange[5] !== null && player.boards.yellow[6] !== null && player.boards.purple[7] !== null) {
+        total += player.boards.orange[5]; 
+    }
+    
+    // Column Pentagon C (Purple Pentagon at index 9): Stacks with Orange[7] and Yellow[8]
+    if (player.boards.orange[7] !== null && player.boards.yellow[8] !== null && player.boards.purple[9] !== null) {
+        total += player.boards.purple[9]; 
+    }
+
+    // 3. Subtract Missteps
     total -= (player.missteps * 5);
     player.score = total;
 }
 
 function endGame() {
+    isGameOver = true;
     document.getElementById('dicePanel').style.display = 'none';
-    document.getElementById('gameArea').style.display = 'block';
     
-    // Force final complete visual render of the final player scorecard panel
-    evaluationPhase = 0; 
-    renderActiveBoard(); 
-    
-    let winnerText = "Game Over! Final Results:\n";
+    let winnerText = "🏆 Game Over! Final Results:\n";
     players.forEach(p => {
         winnerText += `${p.name}: ${p.score} points\n`;
     });
     document.getElementById('statusBanner').innerText = winnerText;
-    alert(winnerText);
+
+    // Show both boards side by side on completion
+    renderAllBoardsAtEnd();
 }
 
 function executeAiTurn() {
-    // Basic Simulation AI for single player mode remains straightforward
     activeColorsRolled = ['orange', 'yellow', 'purple'].filter(() => Math.random() > 0.3);
     if (activeColorsRolled.length === 0) activeColorsRolled = ['yellow'];
 
@@ -306,14 +324,8 @@ function executeAiTurn() {
     }, 1500);
 }
 
-function renderActiveBoard() {
-    const area = document.getElementById('gameArea');
-    area.innerHTML = '';
-
-    // Render the board of the player whose turn it currently is to make a decision
-    const player = players[evaluationPhase];
-    if (!player) return;
-    
+// Generate single scorecard card element helper
+function generateBoardHTML(player) {
     const boardWrap = document.createElement('div');
     boardWrap.className = `player-board`;
     boardWrap.innerHTML = `<div class="player-name">${player.name}'s Scorecard</div>`;
@@ -339,7 +351,10 @@ function renderActiveBoard() {
                     cell.classList.add('filled');
                 }
 
-                cell.onclick = () => handleCellClick(color, index);
+                // Only allow clicks if game is active
+                if (!isGameOver) {
+                    cell.onclick = () => handleCellClick(color, index);
+                }
             }
             rowDiv.appendChild(cell);
         });
@@ -368,5 +383,27 @@ function renderActiveBoard() {
     `;
     
     boardWrap.appendChild(summary);
-    area.appendChild(boardWrap);
+    return boardWrap;
+}
+
+function renderActiveBoard() {
+    const area = document.getElementById('gameArea');
+    area.innerHTML = '';
+    const activePlayerBoard = generateBoardHTML(players[evaluationPhase]);
+    area.appendChild(activePlayerBoard);
+}
+
+// New handler to cleanly project all player board objects onto the container at conclusion
+function renderAllBoardsAtEnd() {
+    const area = document.getElementById('gameArea');
+    area.innerHTML = '';
+    
+    // Change flex style temporarily to present them stacked vertically or grid layout comfortably
+    area.style.flexDirection = 'column';
+    area.style.gap = '40px';
+
+    players.forEach(player => {
+        const finishedBoard = generateBoardHTML(player);
+        area.appendChild(finishedBoard);
+    });
 }
