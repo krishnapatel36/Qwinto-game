@@ -1,131 +1,264 @@
+:root {
+  --bg-color: #fdfbe7;
+  --orange-row: #ff8827;
+  --yellow-row: #ffbc3b;
+  --purple-row: #9b5de5;
+  --disabled-color: #ccc;
+  --shape-bg: #ffffff;
+  --puzzle-shadow: drop-shadow(-6px 5px 6px rgba(0, 0, 0, 0.12));
+}
+
 body {
-  font-family: "PT Serif", serif;
-  background: #fcfbe3;
-  text-align: center;
+  background-color: var(--bg-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
 }
 
-.title {
-  max-width: 650px;
-  margin: 15px auto;
-  margin-left: 20px;
-}
-
-.board-container {
-  display: none;
-  position: relative;
-  width: min(900px, 95vw);
-  margin: 0 auto;
-}
-
-#restart {
-  margin: 8px auto;
-  display: none;
-}
-
-
-.board-image {
-  width: 100%;
-  display: block;
-}
-
-#overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.cell {
-  position: absolute;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.cell:hover {
-  outline: 2px dashed rgba(0,0,0,0.4);
-}
-
-.cell.filled {
-  cursor: default;
-  outline: none;
-}
-
-.cell span {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-weight: bold;
-  font-size: 20px;
-}
-
-.controls {
-  display: none;
-  margin-bottom: 15px;
-}
-
-#setup {
-  margin: 40px auto;
-  text-align: center;
-  margin-top: 150px;
-}
-
-#setup h2 {
-  font-size: 36px;
-  margin-bottom: 20px;
-}
-
-#setup button {
-  font-size: 18px;
-  padding: 12px 24px;
-  margin: 0 10px;
-  cursor: pointer;
-}
-
-#restart {
-  margin-top: 10px;
-  font-size: 18px;
-  padding: 12px 24px;
-}
-
-/* Base button style */
-button {
-  font-family: "PT Serif", serif;
-  /* font-family: "Trebuchet MS", "Verdana", sans-serif; */
-  font-size: 16px;
-  padding: 10px 18px;
-  margin: 6px;
-  margin-top: 0px;
-  border-radius: 14px;
-  border: 2px solid #444;
-  background: #fcfbe3;
+h1 {
   color: #333;
+  margin-bottom: 5px;
+}
+
+.setup-screen,
+.transition-screen {
+  text-align: center;
+  margin: 40px 0;
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+  width: 100%;
+}
+
+.btn {
+  background-color: var(--orange-row);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 0 #999;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  margin: 8px;
+  box-shadow: 0 4px #d66f1b;
+  transition: all 0.1s;
 }
 
-/* Hover = slightly bouncy */
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 0 #888;
-}
-
-/* Click = pressed-in */
-button:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #666;
-}
-
-/* Disabled buttons */
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn:active {
+  transform: translateY(4px);
   box-shadow: none;
 }
 
-#game-area {
-  transform: scale(0.9);
-  transform-origin: top center;
-  margin-top: -5px;
+.status-banner {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 15px 0;
+  color: #222;
+  text-align: center;
 }
 
+.game-area {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  width: 100%;
+  max-width: 900px;
+}
+
+/* --- Individual Player Board Wrapper --- */
+.player-board {
+  background: #fffdf3;
+  padding: 25px;
+  border-radius: 20px;
+  border: 2px solid #ffcc99;
+  position: relative;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.player-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+/* --- Grid System Alignment Fix --- 
+    We use a base 12-column track layout layout so the tracks fit perfectly 
+    inside the box container without extending outside bounds. */
+.row-container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+  padding: 10px 15px;
+  border-radius: 15px;
+  align-items: center;
+  height: 65px;
+  box-sizing: border-box;
+  filter: var(--puzzle-shadow);
+}
+
+/* Grid tracks correctly shift across columns securely inside the parent layout box */
+.orange-bar {
+  background-color: var(--orange-row);
+  grid-column: 3 / span 10;
+}
+
+.yellow-bar {
+  background-color: var(--yellow-bar);
+  grid-column: 2 / span 10;
+}
+
+.purple-bar {
+  background-color: var(--purple-row);
+  grid-column: 1 / span 10;
+}
+
+/* --- Interactive Cells --- */
+.cell {
+  width: 45px;
+  height: 45px;
+  background-color: var(--shape-bg);
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.circle {
+  border-radius: 50%;
+}
+
+.pentagon {
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+.empty-slot {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cell.filled {
+  background-color: #333;
+  color: white;
+}
+
+.cell:hover:not(.filled):not(.empty-slot) {
+  transform: scale(1.1);
+  background-color: #fff3db;
+}
+
+/* --- Controls & Dice Interface --- */
+.dice-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 15px 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+.dice-container {
+  display: flex;
+  gap: 15px;
+}
+
+.die {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  border: 3px solid transparent;
+  user-select: none;
+}
+
+.die.orange-die {
+  background-color: var(--orange-row);
+}
+
+.die.yellow-die {
+  background-color: var(--yellow-bar);
+}
+
+.die.purple-die {
+  background-color: var(--purple-row);
+}
+
+.die.selected {
+  border-color: #333;
+  transform: translateY(-4px);
+}
+
+.roll-result {
+  font-size: 32px;
+  font-weight: bold;
+  color: #222;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Misthrow/Misstep Boxes */
+.misstep-container {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.misstep-box {
+  width: 32px;
+  height: 32px;
+  border: 2px dashed #cc5a00;
+  background: #f7d9c4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #d66f1b;
+  border-radius: 6px;
+}
+
+.misstep-box.checked {
+  background: #ff5500;
+  color: white;
+  border-style: solid;
+}
+
+.score-display {
+  font-size: 20px;
+  font-weight: bold;
+  color: #444;
+}
