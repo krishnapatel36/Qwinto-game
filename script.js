@@ -10,7 +10,6 @@ let isTransitioning = false;
 let activePlayerPlaced = false; 
 let isGameOver = false;
 
-// 1 = Circle Cell, 2 = Pentagon Cell, 0 = Background Empty Spacer Cell
 const rowLayouts = {
     orange: [0, 0, 1, 2, 1, 0, 1, 2, 1, 1, 1, 1],
     yellow: [0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 0],
@@ -28,6 +27,10 @@ class Player {
             purple: Array(12).fill(null)
         };
         this.score = 0;
+        // Tracking sub-scores for layout breakdown
+        this.rowScores = { orange: 0, yellow: 0, purple: 0 };
+        this.colScores = [0, 0, 0, 0, 0]; 
+        this.penaltyValue = 0;
     }
 }
 
@@ -193,7 +196,6 @@ function isValidMove(player, color, index, value) {
     const row = player.boards[color];
     if (row[index] !== null) return false;
 
-    // Left-to-right math progression validator
     for (let i = 0; i < index; i++) {
         if (rowLayouts[color][i] !== 0 && row[i] !== null && row[i] >= value) return false;
     }
@@ -201,7 +203,6 @@ function isValidMove(player, color, index, value) {
         if (rowLayouts[color][i] !== 0 && row[i] !== null && row[i] <= value) return false;
     }
 
-    // Direct vertical stack coordinate lookup verification
     if (rowLayouts.orange[index] !== 0 && player.boards.orange[index] === value) return false;
     if (rowLayouts.yellow[index] !== 0 && player.boards.yellow[index] === value) return false;
     if (rowLayouts.purple[index] !== 0 && player.boards.purple[index] === value) return false;
@@ -219,9 +220,10 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
-// --- Dynamic Array Scoring Engine Engine ---
+// --- Modified Score Engine Saving Visual Breakdowns ---
 function calculateScore(player) {
     let total = 0;
+    player.colScores = [0, 0, 0, 0, 0];
 
     // 1. Natural Row Points Calculation
     for (let rowColor in player.boards) {
@@ -240,41 +242,45 @@ function calculateScore(player) {
         }
 
         if (filledCount === totalPlayableSlots) {
+            player.rowScores[rowColor] = rightmostValue;
             total += rightmostValue;
         } else {
+            player.rowScores[rowColor] = filledCount;
             total += filledCount;
         }
     }
 
-    // 2. Vertical Column Pentagon Rewards (Based on your exact 12-element definitions)
-    
-    // Column Index 2: o[2] y[2] p[2] => reward is p[2]
+    // 2. Vertical Column Pentagon Rewards 
+    // Column Index 2
     if (player.boards.orange[2] !== null && player.boards.yellow[2] !== null && player.boards.purple[2] !== null) {
+        player.colScores[0] = player.boards.purple[2];
         total += player.boards.purple[2]; 
     }
-    
-    // Column Index 3: o[3] y[3] p[3] => reward is o[3]
+    // Column Index 3
     if (player.boards.orange[3] !== null && player.boards.yellow[3] !== null && player.boards.purple[3] !== null) {
+        player.colScores[1] = player.boards.orange[3];
         total += player.boards.orange[3]; 
     }
-    
-    // Column Index 7: o[7] y[7] p[7] => reward is o[7]
+    // Column Index 7
     if (player.boards.orange[7] !== null && player.boards.yellow[7] !== null && player.boards.purple[7] !== null) {
+        player.colScores[2] = player.boards.orange[7];
         total += player.boards.orange[7]; 
     }
-    
-    // Column Index 8: o[8] y[8] p[8] => reward is y[8]
+    // Column Index 8
     if (player.boards.orange[8] !== null && player.boards.yellow[8] !== null && player.boards.purple[8] !== null) {
+        player.colScores[3] = player.boards.yellow[8];
         total += player.boards.yellow[8]; 
     }
-    
-    // Column Index 9: o[9] y[9] p[9] => reward is p[9]
+    // Column Index 9
     if (player.boards.orange[9] !== null && player.boards.yellow[9] !== null && player.boards.purple[9] !== null) {
+        player.colScores[4] = player.boards.purple[9];
         total += player.boards.purple[9]; 
     }
 
-    // 3. Penalty Subtract
-    total -= (player.missteps * 5);
+    // 3. Penalty Value tracking
+    player.penaltyValue = player.missteps * 5;
+    total -= player.penaltyValue;
+    
     player.score = total;
 }
 
@@ -340,20 +346,17 @@ function generateBoardHTML(player) {
         const rowDiv = document.createElement('div');
         rowDiv.className = `grid-row`;
 
-        // Isolating active inner boundary indexes dynamically
         const firstActiveIdx = rowLayouts[color].findIndex(x => x !== 0);
         const lastActiveIdx = rowLayouts[color].findLastIndex(x => x !== 0);
 
         rowLayouts[color].forEach((type, index) => {
             const cell = document.createElement('div');
             
-            // Checks if index lands inside colored bar track perimeter boundary markers
             if (index >= firstActiveIdx && index <= lastActiveIdx) {
                 cell.className = `cell has-bg ${color}-cell`;
                 
                 if (type === 0) {
-                    // Continuous middle gap track coloring filler cell block
-                    cell.classList.add('middle-gap-cell');
+                    cell.className += ' middle-gap-cell';
                 } else {
                     const shapeClass = (type === 1) ? 'circle' : 'pentagon';
                     const inner = document.createElement('div');
@@ -371,7 +374,6 @@ function generateBoardHTML(player) {
                     }
                 }
             } else {
-                // Hides leading or trailing outer bounding zero channels
                 cell.className = 'cell empty-slot';
             }
             rowDiv.appendChild(cell);
@@ -381,9 +383,9 @@ function generateBoardHTML(player) {
         boardWrap.appendChild(container);
     });
 
+    // Missteps Indicator Panel Element
     const summary = document.createElement('div');
     summary.style.display = 'flex';
-    summary.style.justifyContent = 'space-between';
     summary.style.alignItems = 'center';
     summary.style.marginTop = '20px';
 
@@ -397,10 +399,40 @@ function generateBoardHTML(player) {
             <span style="font-size:15px; font-weight:bold; margin-right:8px; color:#555">Missteps (-5pt):</span>
             ${misstepHtml}
         </div>
-        <div class="score-display">Total Score: ${player.score}</div>
     `;
-    
     boardWrap.appendChild(summary);
+
+    // --- New Visual Equation Score Bar Element Replicating Image Layout ---
+    const formulaBar = document.createElement('div');
+    formulaBar.className = 'formula-bar';
+
+    formulaBar.innerHTML = `
+        <div class="formula-group">
+            <div class="formula-box" style="border: 2px solid var(--orange-row);">${player.rowScores.orange}</div>
+            <div class="formula-box" style="border: 2px solid var(--yellow-row);">${player.rowScores.yellow}</div>
+            <div class="formula-box" style="border: 2px solid var(--purple-row);">${player.rowScores.purple}</div>
+        </div>
+        
+        <div class="formula-operator">+</div>
+        
+        <div class="formula-group">
+            <div class="formula-pentagon">${player.colScores[0] || ''}</div>
+            <div class="formula-pentagon">${player.colScores[1] || ''}</div>
+            <div class="formula-pentagon">${player.colScores[2] || ''}</div>
+            <div class="formula-pentagon">${player.colScores[3] || ''}</div>
+            <div class="formula-pentagon">${player.colScores[4] || ''}</div>
+        </div>
+        
+        <div class="formula-operator">-</div>
+        
+        <div class="formula-box">${player.penaltyValue}</div>
+        
+        <div class="formula-operator">=</div>
+        
+        <div class="formula-result">${player.score}</div>
+    `;
+
+    boardWrap.appendChild(formulaBar);
     return boardWrap;
 }
 
