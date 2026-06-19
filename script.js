@@ -1,4 +1,4 @@
-// --- Game Configurations & State ---
+// --- Game Configurations & State Engine ---
 let gameMode = 'PvP';
 let players = [];
 let activePlayerIndex = 0;   
@@ -10,8 +10,7 @@ let isTransitioning = false;
 let activePlayerPlaced = false; 
 let isGameOver = false;
 
-// --- Your Perfect 12-Element Unified Layout Mapping ---
-// 1 = Circle, 2 = Pentagon, 0 = Background Empty Buffer Slot
+// 1 = Circle Cell, 2 = Pentagon Cell, 0 = Background Empty Spacer Cell
 const rowLayouts = {
     orange: [0, 0, 1, 2, 1, 0, 1, 2, 1, 1, 1, 1],
     yellow: [0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 0],
@@ -23,7 +22,6 @@ class Player {
         this.name = name;
         this.isAi = isAi;
         this.missteps = 0;
-        // Boards now track all 12 slots seamlessly
         this.boards = {
             orange: Array(12).fill(null),
             yellow: Array(12).fill(null),
@@ -203,7 +201,7 @@ function isValidMove(player, color, index, value) {
         if (rowLayouts[color][i] !== 0 && row[i] !== null && row[i] <= value) return false;
     }
 
-    // Since indices are 100% unified, vertical overlap checks are dead-simple direct lookups
+    // Direct vertical stack coordinate lookup verification
     if (rowLayouts.orange[index] !== 0 && player.boards.orange[index] === value) return false;
     if (rowLayouts.yellow[index] !== 0 && player.boards.yellow[index] === value) return false;
     if (rowLayouts.purple[index] !== 0 && player.boards.purple[index] === value) return false;
@@ -221,11 +219,11 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
-// --- Your 12-Element Array Scoring Engine Engine ---
+// --- Dynamic Array Scoring Engine Engine ---
 function calculateScore(player) {
     let total = 0;
 
-    // 1. Natural Row Points
+    // 1. Natural Row Points Calculation
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
@@ -340,26 +338,41 @@ function generateBoardHTML(player) {
         container.className = 'row-container';
 
         const rowDiv = document.createElement('div');
-        rowDiv.className = `grid-row ${color}-bar`;
+        rowDiv.className = `grid-row`;
 
-        // Render straight down the 12 unified structural tracking paths
+        // Isolating active inner boundary indexes dynamically
+        const firstActiveIdx = rowLayouts[color].findIndex(x => x !== 0);
+        const lastActiveIdx = rowLayouts[color].findLastIndex(x => x !== 0);
+
         rowLayouts[color].forEach((type, index) => {
             const cell = document.createElement('div');
-            if (type === 0) {
-                cell.className = 'cell empty-slot';
-            } else {
-                const shapeClass = (type === 1) ? 'circle' : 'pentagon';
-                cell.className = `cell ${shapeClass}`;
+            
+            // Checks if index lands inside colored bar track perimeter boundary markers
+            if (index >= firstActiveIdx && index <= lastActiveIdx) {
+                cell.className = `cell has-bg ${color}-cell`;
                 
-                const val = player.boards[color][index];
-                if (val !== null) {
-                    cell.innerText = val;
-                    cell.classList.add('filled');
-                }
+                if (type === 0) {
+                    // Continuous middle gap track coloring filler cell block
+                    cell.classList.add('middle-gap-cell');
+                } else {
+                    const shapeClass = (type === 1) ? 'circle' : 'pentagon';
+                    const inner = document.createElement('div');
+                    inner.className = `cell-inner ${shapeClass}`;
+                    
+                    const val = player.boards[color][index];
+                    if (val !== null) {
+                        inner.innerText = val;
+                        cell.classList.add('filled');
+                    }
+                    cell.appendChild(inner);
 
-                if (!isGameOver && player.isAi === false) {
-                    cell.onclick = () => handleCellClick(color, index);
+                    if (!isGameOver && player.isAi === false) {
+                        cell.onclick = () => handleCellClick(color, index);
+                    }
                 }
+            } else {
+                // Hides leading or trailing outer bounding zero channels
+                cell.className = 'cell empty-slot';
             }
             rowDiv.appendChild(cell);
         });
@@ -376,7 +389,7 @@ function generateBoardHTML(player) {
 
     let misstepHtml = '';
     for(let m = 1; m <= 4; m++) {
-        misstepHtml += `<div class="misstep-box ${m <= player.missteps ? 'checked' : ''}">${m <= player.missteps ? 'X' : ''}</div>`;
+        misstepHtml += `<div class="misstep-box ${m <= player.missteps ? 'checked' : ''}" onclick="${(!isGameOver && player.isAi === false && evaluationPhase === activePlayerIndex) ? 'handlePassTurn()' : ''}">${m <= player.missteps ? 'X' : ''}</div>`;
     }
 
     summary.innerHTML = `
