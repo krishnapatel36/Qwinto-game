@@ -229,47 +229,70 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
-// --- Corrected Qwinto Rule Scorer with Precise Column Alignments ---
+// --- Fixed Index-Mapped Qwinto Scoring Engine ---
 function calculateScore(player) {
     let total = 0;
 
-    // 1. Calculate Row Points
+    // 1. CALCULATE ROW POINTS
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
-        const totalSlots = layout.filter(x => x !== 0).length;
-        const filledSlots = boardRow.filter(x => x !== null).length;
+        
+        // Count total valid playable slots in this row color profile (ignores structural 0 blocks)
+        const totalPlayableSlots = layout.filter(x => x !== 0).length;
+        
+        let filledCount = 0;
+        let rightmostValue = 0;
+        
+        for (let i = 0; i < boardRow.length; i++) {
+            if (layout[i] !== 0 && boardRow[i] !== null) {
+                filledCount++;
+                rightmostValue = boardRow[i];
+            }
+        }
 
-        if (filledSlots === totalSlots) {
-            // Row complete: points equal the value of the very last filled space in that row
-            // We find the last element that isn't null
-            const validNumbers = boardRow.filter(x => x !== null);
-            total += validNumbers[validNumbers.length - 1];
+        if (filledCount === totalPlayableSlots) {
+            // Row is 100% full -> Points = value of rightmost number slot
+            total += rightmostValue;
         } else {
-            // Row incomplete: 1 point per entered number
-            total += filledSlots;
+            // Row is incomplete -> 1 point per written number cell
+            total += filledCount;
         }
     }
 
-    // 2. Vertical Column Pentagon Bonus Points (Checks if all 3 slots are completely filled)
+    // 2. VERTICAL COLUMN PENTAGON BONUS POINTS (Based on your exact index definitions)
     
-    // Column Pentagon A (Purple Pentagon at index 3): Stacks with Orange[1] and Yellow[2]
-    if (player.boards.orange[1] !== null && player.boards.yellow[2] !== null && player.boards.purple[3] !== null) {
-        total += player.boards.purple[3]; 
+    // Column 1: o[0] y[1] p[2]
+    if (player.boards.orange[0] !== null && player.boards.yellow[1] !== null && player.boards.purple[2] !== null) {
+        // Adds the reward if this specific vertical group is complete
+        total += player.boards.orange[0]; 
     }
     
-    // Column Pentagon B (Orange Pentagon at index 5): Stacks with Yellow[6] and Purple[7]
+    // Column 2: o[1] y[2] p[3] (Contains your 7, 6, and 8 -> adds both pentagons 7 and 8!)
+    if (player.boards.orange[1] !== null && player.boards.yellow[2] !== null && player.boards.purple[3] !== null) {
+        total += player.boards.orange[1]; // Adds the 7 reward
+        total += player.boards.purple[3]; // Adds the 8 reward
+    }
+    
+    // Column 3: o[4] y[5] p[6] (Contains 11, 10, and empty -> safely skips since p[6] is empty)
+    if (player.boards.orange[4] !== null && player.boards.yellow[5] !== null && player.boards.purple[6] !== null) {
+        total += player.boards.orange[4]; // Adds the 11 reward
+    }
+    
+    // Column 4: o[5] y[6] p[7]
     if (player.boards.orange[5] !== null && player.boards.yellow[6] !== null && player.boards.purple[7] !== null) {
         total += player.boards.orange[5]; 
     }
     
-    // Column Pentagon C (Purple Pentagon at index 9): Stacks with Orange[7] and Yellow[8]
-    if (player.boards.orange[7] !== null && player.boards.yellow[8] !== null && player.boards.purple[9] !== null) {
-        total += player.boards.purple[9]; 
+    // Column 5: o[6] y[7] p[8]
+    if (player.boards.orange[6] !== null && player.boards.yellow[7] !== null && player.boards.purple[8] !== null) {
+        total += player.boards.purple[8]; 
     }
 
-    // 3. Subtract Missteps
+    // 3. SUBTRACT MISSTEPS PENALTIES
     total -= (player.missteps * 5);
+
+    // Save final updated score state
     player.score = total;
 }
 
