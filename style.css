@@ -258,3 +258,79 @@ h1 {
     font-weight: bold;
     color: #444;
 }
+
+/* --- Bottom Formula Bar --- */
+.formula-bar {
+    background-color: var(--orange-row);
+    border-radius: 18px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    filter: var(--puzzle-shadow);
+}
+
+.formula-group {
+    display: flex;
+    gap: 6px;
+}
+
+.formula-box {
+    background-color: var(--shape-bg);
+    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.formula-operator {
+    font-size: 32px;
+    color: var(--shape-bg);
+    font-weight: bold;
+    user-select: none;
+}
+
+.formula-pentagon {
+    width: 42px;
+    height: 42px;
+    background-color: var(--shape-bg);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.formula-result {
+    background-color: var(--shape-bg);
+    border-radius: 14px;
+    flex-grow: 1;
+    height: 44px;
+    max-width: 180px;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: #222;
+}
+
+/* Make final comparison layout clear at the end */
+.game-area {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    width: 100%;
+    max-width: 950px;
+}
