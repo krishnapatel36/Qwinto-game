@@ -229,16 +229,16 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
-// --- Fixed Index-Mapped Qwinto Scoring Engine ---
+// --- Custom Pentagon-Targeted Qwinto Scoring Engine ---
 function calculateScore(player) {
     let total = 0;
 
-    // 1. CALCULATE ROW POINTS
+    // 1. CALCULATE NATURAL ROW POINTS
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
         
-        // Count total valid playable slots in this row color profile (ignores structural 0 blocks)
+        // Count total playable slots in this row (ignoring background structural 0s)
         const totalPlayableSlots = layout.filter(x => x !== 0).length;
         
         let filledCount = 0;
@@ -252,39 +252,37 @@ function calculateScore(player) {
         }
 
         if (filledCount === totalPlayableSlots) {
-            // Row is 100% full -> Points = value of rightmost number slot
+            // Row is completely full -> add the value of the last index number
             total += rightmostValue;
         } else {
-            // Row is incomplete -> 1 point per written number cell
+            // Row is incomplete -> add only the count of filled shapes
             total += filledCount;
         }
     }
 
-    // 2. VERTICAL COLUMN PENTAGON BONUS POINTS (Based on your exact index definitions)
+    // 2. VERTICAL COLUMN PENTAGON REWARDS
     
-    // Column 1: o[0] y[1] p[2]
+    // Column 1: o[0] y[1] p[2] => add value of p[2] to points
     if (player.boards.orange[0] !== null && player.boards.yellow[1] !== null && player.boards.purple[2] !== null) {
-        // Adds the reward if this specific vertical group is complete
-        total += player.boards.orange[0]; 
+        total += player.boards.purple[2]; 
     }
     
-    // Column 2: o[1] y[2] p[3] (Contains your 7, 6, and 8 -> adds both pentagons 7 and 8!)
+    // Column 2: o[1] y[2] p[3] => add value of o[1] to points
     if (player.boards.orange[1] !== null && player.boards.yellow[2] !== null && player.boards.purple[3] !== null) {
-        total += player.boards.orange[1]; // Adds the 7 reward
-        total += player.boards.purple[3]; // Adds the 8 reward
+        total += player.boards.orange[1]; 
     }
     
-    // Column 3: o[4] y[5] p[6] (Contains 11, 10, and empty -> safely skips since p[6] is empty)
+    // Column 3: o[4] y[5] p[6] => add value of o[4] to points
     if (player.boards.orange[4] !== null && player.boards.yellow[5] !== null && player.boards.purple[6] !== null) {
-        total += player.boards.orange[4]; // Adds the 11 reward
+        total += player.boards.orange[4]; 
     }
     
-    // Column 4: o[5] y[6] p[7]
+    // Column 4: o[5] y[6] p[7] => add value of y[6] to points
     if (player.boards.orange[5] !== null && player.boards.yellow[6] !== null && player.boards.purple[7] !== null) {
-        total += player.boards.orange[5]; 
+        total += player.boards.yellow[6]; 
     }
     
-    // Column 5: o[6] y[7] p[8]
+    // Column 5: o[6] y[7] p[8] => add value of p[8] to points
     if (player.boards.orange[6] !== null && player.boards.yellow[7] !== null && player.boards.purple[8] !== null) {
         total += player.boards.purple[8]; 
     }
@@ -292,7 +290,7 @@ function calculateScore(player) {
     // 3. SUBTRACT MISSTEPS PENALTIES
     total -= (player.missteps * 5);
 
-    // Save final updated score state
+    // Update final player score profile
     player.score = total;
 }
 
