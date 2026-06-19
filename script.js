@@ -1,8 +1,8 @@
 // --- Game Configurations & State ---
 let gameMode = 'PvP';
 let players = [];
-let activePlayerIndex = 0;   // The player who actually rolled the dice
-let evaluationPhase = 0;     // Tracks who is currently looking at the board to place the number
+let activePlayerIndex = 0;   
+let evaluationPhase = 0;     
 let currentRollTotal = 0;
 let activeColorsRolled = [];
 let hasRolledThisTurn = false;
@@ -10,10 +10,12 @@ let isTransitioning = false;
 let activePlayerPlaced = false; 
 let isGameOver = false;
 
+// --- Your Perfect 12-Element Unified Layout Mapping ---
+// 1 = Circle, 2 = Pentagon, 0 = Background Empty Buffer Slot
 const rowLayouts = {
-    orange: [1, 2, 1, 0, 1, 2, 1, 1, 1, 1], 
-    yellow: [1, 1, 1, 1, 1, 0, 1, 2, 1, 1],
-    purple: [1, 1, 2, 1, 0, 1, 1, 1, 1, 2]
+    orange: [0, 0, 1, 2, 1, 0, 1, 2, 1, 1, 1, 1],
+    yellow: [0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 0],
+    purple: [1, 1, 2, 1, 0, 1, 1, 1, 1, 2, 0, 0]
 };
 
 class Player {
@@ -21,10 +23,11 @@ class Player {
         this.name = name;
         this.isAi = isAi;
         this.missteps = 0;
+        // Boards now track all 12 slots seamlessly
         this.boards = {
-            orange: Array(10).fill(null),
-            yellow: Array(10).fill(null),
-            purple: Array(10).fill(null)
+            orange: Array(12).fill(null),
+            yellow: Array(12).fill(null),
+            purple: Array(12).fill(null)
         };
         this.score = 0;
     }
@@ -187,34 +190,23 @@ function checkAndCleanTurnCycle() {
 
 function isValidMove(player, color, index, value) {
     if (!activeColorsRolled.includes(color)) return false;
+    if (rowLayouts[color][index] === 0) return false;
     
     const row = player.boards[color];
     if (row[index] !== null) return false;
 
+    // Left-to-right math progression validator
     for (let i = 0; i < index; i++) {
-        if (row[i] !== null && row[i] >= value) return false;
+        if (rowLayouts[color][i] !== 0 && row[i] !== null && row[i] >= value) return false;
     }
     for (let i = index + 1; i < row.length; i++) {
-        if (row[i] !== null && row[i] <= value) return false;
+        if (rowLayouts[color][i] !== 0 && row[i] !== null && row[i] <= value) return false;
     }
 
-    const checkVerticalOverlap = (otherColor, adjIndex) => {
-        if (adjIndex >= 0 && adjIndex < 10) {
-            if (player.boards[otherColor][adjIndex] === value) return false;
-        }
-        return true;
-    };
-
-    if (color === 'orange') {
-        if (!checkVerticalOverlap('yellow', index + 1)) return false;
-        if (!checkVerticalOverlap('purple', index + 2)) return false;
-    } else if (color === 'yellow') {
-        if (!checkVerticalOverlap('orange', index - 1)) return false;
-        if (!checkVerticalOverlap('purple', index + 1)) return false;
-    } else if (color === 'purple') {
-        if (!checkVerticalOverlap('orange', index - 2)) return false;
-        if (!checkVerticalOverlap('yellow', index - 1)) return false;
-    }
+    // Since indices are 100% unified, vertical overlap checks are dead-simple direct lookups
+    if (rowLayouts.orange[index] !== 0 && player.boards.orange[index] === value) return false;
+    if (rowLayouts.yellow[index] !== 0 && player.boards.yellow[index] === value) return false;
+    if (rowLayouts.purple[index] !== 0 && player.boards.purple[index] === value) return false;
 
     return true;
 }
@@ -223,24 +215,22 @@ function checkRowsFilled(p) {
     let fullRows = 0;
     for (let col in p.boards) {
         const spacesCount = rowLayouts[col].filter(x => x !== 0).length;
-        const filledCount = p.boards[col].filter(x => x !== null).length;
-        if(spacesCount === filledCount) fullRows++;
+        const filledCount = p.boards[col].filter((x, idx) => x !== null && rowLayouts[col][idx] !== 0).length;
+        if(filledCount === spacesCount) fullRows++;
     }
     return fullRows;
 }
 
-// --- Custom Pentagon-Targeted Qwinto Scoring Engine ---
+// --- Your 12-Element Array Scoring Engine Engine ---
 function calculateScore(player) {
     let total = 0;
 
-    // 1. CALCULATE NATURAL ROW POINTS
+    // 1. Natural Row Points
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
         
-        // Count total playable slots in this row (ignoring background structural 0s)
         const totalPlayableSlots = layout.filter(x => x !== 0).length;
-        
         let filledCount = 0;
         let rightmostValue = 0;
         
@@ -252,45 +242,41 @@ function calculateScore(player) {
         }
 
         if (filledCount === totalPlayableSlots) {
-            // Row is completely full -> add the value of the last index number
             total += rightmostValue;
         } else {
-            // Row is incomplete -> add only the count of filled shapes
             total += filledCount;
         }
     }
 
-    // 2. VERTICAL COLUMN PENTAGON REWARDS
+    // 2. Vertical Column Pentagon Rewards (Based on your exact 12-element definitions)
     
-    // Column 1: o[0] y[1] p[2] => add value of p[2] to points
-    if (player.boards.orange[0] !== null && player.boards.yellow[1] !== null && player.boards.purple[2] !== null) {
+    // Column Index 2: o[2] y[2] p[2] => reward is p[2]
+    if (player.boards.orange[2] !== null && player.boards.yellow[2] !== null && player.boards.purple[2] !== null) {
         total += player.boards.purple[2]; 
     }
     
-    // Column 2: o[1] y[2] p[3] => add value of o[1] to points
-    if (player.boards.orange[1] !== null && player.boards.yellow[2] !== null && player.boards.purple[3] !== null) {
-        total += player.boards.orange[1]; 
+    // Column Index 3: o[3] y[3] p[3] => reward is o[3]
+    if (player.boards.orange[3] !== null && player.boards.yellow[3] !== null && player.boards.purple[3] !== null) {
+        total += player.boards.orange[3]; 
     }
     
-    // Column 3: o[4] y[5] p[6] => add value of o[4] to points
-    if (player.boards.orange[4] !== null && player.boards.yellow[5] !== null && player.boards.purple[6] !== null) {
-        total += player.boards.orange[4]; 
+    // Column Index 7: o[7] y[7] p[7] => reward is o[7]
+    if (player.boards.orange[7] !== null && player.boards.yellow[7] !== null && player.boards.purple[7] !== null) {
+        total += player.boards.orange[7]; 
     }
     
-    // Column 4: o[5] y[6] p[7] => add value of y[6] to points
-    if (player.boards.orange[5] !== null && player.boards.yellow[6] !== null && player.boards.purple[7] !== null) {
-        total += player.boards.yellow[6]; 
+    // Column Index 8: o[8] y[8] p[8] => reward is y[8]
+    if (player.boards.orange[8] !== null && player.boards.yellow[8] !== null && player.boards.purple[8] !== null) {
+        total += player.boards.yellow[8]; 
     }
     
-    // Column 5: o[6] y[7] p[8] => add value of p[8] to points
-    if (player.boards.orange[6] !== null && player.boards.yellow[7] !== null && player.boards.purple[8] !== null) {
-        total += player.boards.purple[8]; 
+    // Column Index 9: o[9] y[9] p[9] => reward is p[9]
+    if (player.boards.orange[9] !== null && player.boards.yellow[9] !== null && player.boards.purple[9] !== null) {
+        total += player.boards.purple[9]; 
     }
 
-    // 3. SUBTRACT MISSTEPS PENALTIES
+    // 3. Penalty Subtract
     total -= (player.missteps * 5);
-
-    // Update final player score profile
     player.score = total;
 }
 
@@ -304,7 +290,6 @@ function endGame() {
     });
     document.getElementById('statusBanner').innerText = winnerText;
 
-    // Show both boards side by side on completion
     renderAllBoardsAtEnd();
 }
 
@@ -324,7 +309,7 @@ function executeAiTurn() {
     let moved = false;
 
     for (let color of activeColorsRolled) {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 12; i++) {
             if (rowLayouts[color][i] !== 0 && isValidMove(ai, color, i, currentRollTotal)) {
                 ai.boards[color][i] = currentRollTotal;
                 calculateScore(ai);
@@ -345,7 +330,6 @@ function executeAiTurn() {
     }, 1500);
 }
 
-// Generate single scorecard card element helper
 function generateBoardHTML(player) {
     const boardWrap = document.createElement('div');
     boardWrap.className = `player-board`;
@@ -358,6 +342,7 @@ function generateBoardHTML(player) {
         const rowDiv = document.createElement('div');
         rowDiv.className = `grid-row ${color}-bar`;
 
+        // Render straight down the 12 unified structural tracking paths
         rowLayouts[color].forEach((type, index) => {
             const cell = document.createElement('div');
             if (type === 0) {
@@ -372,8 +357,7 @@ function generateBoardHTML(player) {
                     cell.classList.add('filled');
                 }
 
-                // Only allow clicks if game is active
-                if (!isGameOver) {
+                if (!isGameOver && player.isAi === false) {
                     cell.onclick = () => handleCellClick(color, index);
                 }
             }
@@ -414,12 +398,9 @@ function renderActiveBoard() {
     area.appendChild(activePlayerBoard);
 }
 
-// New handler to cleanly project all player board objects onto the container at conclusion
 function renderAllBoardsAtEnd() {
     const area = document.getElementById('gameArea');
     area.innerHTML = '';
-    
-    // Change flex style temporarily to present them stacked vertically or grid layout comfortably
     area.style.flexDirection = 'column';
     area.style.gap = '40px';
 
