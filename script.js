@@ -16,6 +16,15 @@ const rowLayouts = {
     purple: [1, 1, 2, 1, 0, 1, 1, 1, 1, 2, 0, 0]
 };
 
+const diceRotations = {
+    1: 'rotateX(0deg) rotateY(0deg)',       
+    2: 'rotateX(0deg) rotateY(180deg)',     
+    3: 'rotateX(0deg) rotateY(90deg)',       
+    4: 'rotateX(0deg) rotateY(-90deg)',      
+    5: 'rotateX(-90deg) rotateY(0deg)',      
+    6: 'rotateX(90deg) rotateY(0deg)'        
+};
+
 class Player {
     constructor(name, isAi = false) {
         this.name = name;
@@ -27,7 +36,6 @@ class Player {
             purple: Array(12).fill(null)
         };
         this.score = 0;
-        // Tracking sub-scores for layout breakdown
         this.rowScores = { orange: 0, yellow: 0, purple: 0 };
         this.colScores = [0, 0, 0, 0, 0]; 
         this.penaltyValue = 0;
@@ -65,7 +73,12 @@ function startNewTurnCycle() {
     const activePlayer = players[activePlayerIndex];
     document.getElementById('statusBanner').innerText = `${activePlayer.name}'s Turn to Roll!`;
     
-    document.querySelectorAll('.die').forEach(d => d.classList.add('selected'));
+    document.querySelectorAll('.dice-cube-scene').forEach(scene => {
+        scene.classList.remove('deselected');
+        const cube = scene.querySelector('.dice-cube');
+        cube.classList.remove('rolling');
+        cube.style.transform = 'rotateX(-20deg) rotateY(30deg)';
+    });
     renderActiveBoard();
 
     if (activePlayer.isAi) {
@@ -73,37 +86,54 @@ function startNewTurnCycle() {
     }
 }
 
-function toggleDie(dieEl) {
+function toggleDie(sceneEl) {
     if (hasRolledThisTurn || isTransitioning || isGameOver) return;
-    dieEl.classList.toggle('selected');
+    sceneEl.classList.toggle('deselected');
 }
 
 function rollDice() {
-    const selectedDice = document.querySelectorAll('.die.selected');
-    if(selectedDice.length === 0) {
+    const scenes = document.querySelectorAll('.dice-cube-scene:not(.deselected)');
+    if(scenes.length === 0) {
         alert("Select at least one die color to roll!");
         return;
     }
 
     activeColorsRolled = [];
     currentRollTotal = 0;
-
-    selectedDice.forEach(die => {
-        const color = die.getAttribute('data-color');
-        const val = Math.floor(Math.random() * 6) + 1;
-        currentRollTotal += val;
-        activeColorsRolled.push(color);
-    });
-
-    document.getElementById('rollResult').innerText = currentRollTotal;
     hasRolledThisTurn = true;
     document.getElementById('rollBtn').disabled = true;
 
-    promptCurrentEvaluatingPlayer();
+    scenes.forEach(scene => {
+        const cube = scene.querySelector('.dice-cube');
+        cube.style.transform = ''; 
+        cube.classList.add('rolling');
+    });
+
+    setTimeout(() => {
+        scenes.forEach(scene => {
+            const color = scene.getAttribute('data-color');
+            const cube = scene.querySelector('.dice-cube');
+            const val = Math.floor(Math.random() * 6) + 1;
+            
+            currentRollTotal += val;
+            activeColorsRolled.push(color);
+
+            cube.classList.remove('rolling');
+            cube.style.transform = diceRotations[val];
+        });
+
+        document.getElementById('rollResult').innerText = currentRollTotal;
+        promptCurrentEvaluatingPlayer();
+    }, 1000);
 }
 
 function promptCurrentEvaluatingPlayer() {
     const evaluatingPlayer = players[evaluationPhase];
+    
+    if (evaluatingPlayer.isAi) {
+        setTimeout(executeAiEvaluation, 1000);
+        return;
+    }
     
     if (evaluationPhase === activePlayerIndex) {
         document.getElementById('passBtn').innerText = "Take Misstep Penalty";
@@ -112,14 +142,14 @@ function promptCurrentEvaluatingPlayer() {
     } else {
         document.getElementById('passBtn').innerText = "Skip / Do Nothing";
         document.getElementById('statusBanner').innerText = 
-            `[PASSIVE] ${evaluatingPlayer.name}: You can optionally use ${activePlayerIndex === 0 ? 'Player 1' : 'Player 2'}'s roll of ${currentRollTotal}.`;
+            `[PASSIVE] ${evaluatingPlayer.name}: You can optionally use the AI's roll of ${currentRollTotal}.`;
     }
     
     renderActiveBoard();
 }
 
 function handleCellClick(color, index) {
-    if (!hasRolledThisTurn || isTransitioning || isGameOver) return;
+    if (!hasRolledThisTurn || isGameOver) return;
 
     const player = players[evaluationPhase];
     
@@ -138,7 +168,7 @@ function handleCellClick(color, index) {
 }
 
 function handlePassTurn() {
-    if (!hasRolledThisTurn || isTransitioning || isGameOver) return;
+    if (!hasRolledThisTurn || isGameOver) return;
     
     const player = players[evaluationPhase];
     
@@ -152,8 +182,13 @@ function handlePassTurn() {
     advanceEvaluation();
 }
 
+// FIXED: Added evaluation phase validation checks to prevent structural recursion infinite loops
 function advanceEvaluation() {
-    if (gameMode === 'PvP' && evaluationPhase === activePlayerIndex) {
+    if (gameMode === 'Ai' && evaluationPhase === activePlayerIndex && evaluationPhase === 0) {
+        // Human player rolled and resolved, pass passive evaluation choice context to AI (index 1)
+        evaluationPhase = 1; 
+        promptCurrentEvaluatingPlayer();
+    } else if (gameMode === 'PvP' && evaluationPhase === activePlayerIndex) {
         evaluationPhase = (activePlayerIndex + 1) % players.length;
         
         isTransitioning = true;
@@ -164,6 +199,7 @@ function advanceEvaluation() {
         document.getElementById('transitionMessage').innerText = `Pass device to ${players[evaluationPhase].name} to use the roll of ${currentRollTotal}`;
         document.getElementById('transitionScreen').style.display = 'block';
     } else {
+        // Loop break condition satisfied: both human and AI options resolved for this turn cycle
         checkAndCleanTurnCycle();
     }
 }
@@ -220,12 +256,10 @@ function checkRowsFilled(p) {
     return fullRows;
 }
 
-// --- Modified Score Engine Saving Visual Breakdowns ---
 function calculateScore(player) {
     let total = 0;
     player.colScores = [0, 0, 0, 0, 0];
 
-    // 1. Natural Row Points Calculation
     for (let rowColor in player.boards) {
         const layout = rowLayouts[rowColor];
         const boardRow = player.boards[rowColor];
@@ -250,34 +284,27 @@ function calculateScore(player) {
         }
     }
 
-    // 2. Vertical Column Pentagon Rewards 
-    // Column Index 2
     if (player.boards.orange[2] !== null && player.boards.yellow[2] !== null && player.boards.purple[2] !== null) {
         player.colScores[0] = player.boards.purple[2];
         total += player.boards.purple[2]; 
     }
-    // Column Index 3
     if (player.boards.orange[3] !== null && player.boards.yellow[3] !== null && player.boards.purple[3] !== null) {
         player.colScores[1] = player.boards.orange[3];
         total += player.boards.orange[3]; 
     }
-    // Column Index 7
     if (player.boards.orange[7] !== null && player.boards.yellow[7] !== null && player.boards.purple[7] !== null) {
         player.colScores[2] = player.boards.orange[7];
         total += player.boards.orange[7]; 
     }
-    // Column Index 8
     if (player.boards.orange[8] !== null && player.boards.yellow[8] !== null && player.boards.purple[8] !== null) {
         player.colScores[3] = player.boards.yellow[8];
         total += player.boards.yellow[8]; 
     }
-    // Column Index 9
     if (player.boards.orange[9] !== null && player.boards.yellow[9] !== null && player.boards.purple[9] !== null) {
         player.colScores[4] = player.boards.purple[9];
         total += player.boards.purple[9]; 
     }
 
-    // 3. Penalty Value tracking
     player.penaltyValue = player.missteps * 5;
     total -= player.penaltyValue;
     
@@ -298,39 +325,92 @@ function endGame() {
 }
 
 function executeAiTurn() {
-    activeColorsRolled = ['orange', 'yellow', 'purple'].filter(() => Math.random() > 0.3);
-    if (activeColorsRolled.length === 0) activeColorsRolled = ['yellow'];
-
+    const ai = players[activePlayerIndex];
+    
+    let choice = ['orange', 'yellow', 'purple'];
+    if (ai.boards.orange.filter(x=>x).length > 8) choice = ['yellow', 'purple'];
+    
+    activeColorsRolled = choice;
     currentRollTotal = 0;
-    activeColorsRolled.forEach(() => {
-        currentRollTotal += Math.floor(Math.random() * 6) + 1;
+    
+    const scenes = document.querySelectorAll('.dice-cube-scene');
+    scenes.forEach(scene => {
+        const color = scene.getAttribute('data-color');
+        const cube = scene.querySelector('.dice-cube');
+        if (activeColorsRolled.includes(color)) {
+            scene.classList.remove('deselected');
+            cube.style.transform = '';
+            cube.classList.add('rolling');
+        } else {
+            scene.classList.add('deselected');
+        }
     });
 
-    document.getElementById('rollResult').innerText = currentRollTotal;
-    hasRolledThisTurn = true;
-    
-    const ai = players[activePlayerIndex];
-    let moved = false;
+    setTimeout(() => {
+        activeColorsRolled.forEach(color => {
+            const scene = document.querySelector(`.dice-cube-scene[data-color="${color}"]`);
+            const cube = scene.querySelector('.dice-cube');
+            const val = Math.floor(Math.random() * 6) + 1;
+            currentRollTotal += val;
+            cube.classList.remove('rolling');
+            cube.style.transform = diceRotations[val];
+        });
 
-    for (let color of activeColorsRolled) {
+        document.getElementById('rollResult').innerText = currentRollTotal;
+        hasRolledThisTurn = true;
+        
+        promptCurrentEvaluatingPlayer();
+    }, 1000);
+}
+
+function executeAiEvaluation() {
+    const ai = players[evaluationPhase];
+    let bestMove = null;
+    let highestUtility = -9999;
+
+    for (let color of ['orange', 'yellow', 'purple']) {
         for (let i = 0; i < 12; i++) {
-            if (rowLayouts[color][i] !== 0 && isValidMove(ai, color, i, currentRollTotal)) {
-                ai.boards[color][i] = currentRollTotal;
-                calculateScore(ai);
-                moved = true;
-                break;
+            if (isValidMove(ai, color, i, currentRollTotal)) {
+                let utility = 0;
+
+                if ([2, 3, 7, 8, 9].includes(i)) {
+                    utility += 50; 
+                }
+
+                if (currentRollTotal >= 12 && i >= 8) utility += 30;
+                if (currentRollTotal <= 5 && i <= 3) utility += 30;
+
+                if (i > 0 && ai.boards[color][i-1] !== null) {
+                    let diff = currentRollTotal - ai.boards[color][i-1];
+                    if (diff === 1 || diff === 2) utility += 15; 
+                }
+
+                if (utility > highestUtility) {
+                    highestUtility = utility;
+                    bestMove = { color, index: i };
+                }
             }
         }
-        if (moved) break;
     }
 
-    if (!moved) {
-        ai.missteps++;
+    if (bestMove && (evaluationPhase === activePlayerIndex || highestUtility > 20)) {
+        ai.boards[bestMove.color][bestMove.index] = currentRollTotal;
         calculateScore(ai);
+        document.getElementById('statusBanner').innerText = `🤖 AI placed ${currentRollTotal} on the ${bestMove.color} row!`;
+    } else {
+        if (evaluationPhase === activePlayerIndex) {
+            ai.missteps++;
+            calculateScore(ai);
+            document.getElementById('statusBanner').innerText = `🤖 AI took a Misstep penalty!`;
+        } else {
+            document.getElementById('statusBanner').innerText = `🤖 AI skipped using your roll.`;
+        }
     }
+
+    renderActiveBoard();
 
     setTimeout(() => {
-        checkAndCleanTurnCycle();
+        advanceEvaluation();
     }, 1500);
 }
 
@@ -383,10 +463,10 @@ function generateBoardHTML(player) {
         boardWrap.appendChild(container);
     });
 
-    // Missteps Indicator Panel Element
     const summary = document.createElement('div');
     summary.style.display = 'flex';
     summary.style.alignItems = 'center';
+    summary.style.justifyContent = 'center';
     summary.style.marginTop = '20px';
 
     let misstepHtml = '';
@@ -402,15 +482,14 @@ function generateBoardHTML(player) {
     `;
     boardWrap.appendChild(summary);
 
-    // --- New Visual Equation Score Bar Element Replicating Image Layout ---
     const formulaBar = document.createElement('div');
     formulaBar.className = 'formula-bar';
 
     formulaBar.innerHTML = `
         <div class="formula-group">
-            <div class="formula-box" style="border: 2px solid var(--orange-row);">${player.rowScores.orange}</div>
-            <div class="formula-box" style="border: 2px solid var(--yellow-row);">${player.rowScores.yellow}</div>
-            <div class="formula-box" style="border: 2px solid var(--purple-row);">${player.rowScores.purple}</div>
+            <div class="formula-box" style="border: 2px solid var(--green-row); font-weight: 800;">${player.rowScores.orange}</div>
+            <div class="formula-box" style="border: 2px solid var(--yellow-row); font-weight: 800;">${player.rowScores.yellow}</div>
+            <div class="formula-box" style="border: 2px solid var(--blue-row); font-weight: 800;">${player.rowScores.purple}</div>
         </div>
         
         <div class="formula-operator">+</div>
@@ -425,10 +504,9 @@ function generateBoardHTML(player) {
         
         <div class="formula-operator">-</div>
         
-        <div class="formula-box">${player.penaltyValue}</div>
+        <div class="formula-box" style="border: 2px solid #ff5500;">${player.penaltyValue}</div>
         
         <div class="formula-operator">=</div>
-        
         <div class="formula-result">${player.score}</div>
     `;
 
