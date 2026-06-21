@@ -14,7 +14,6 @@
 }
 
 html, body {
-    overflow: hidden; /* Fully locks scrolling on body and html */
     height: 100vh;
     width: 100vw;
 }
@@ -105,7 +104,6 @@ img {
     position: relative;
     box-shadow: 0 6px 12px rgba(0,0,0,0.03);
     width: 100%;
-    overflow: hidden;
 }
 
 .player-name {
@@ -410,7 +408,6 @@ img {
     max-width: 600px;
     width: 90%;
     max-height: 80vh;
-    overflow-y: auto;
     text-align: left;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
@@ -423,8 +420,6 @@ img {
     width: 100%;
     max-width: 1100px; 
     flex-grow: 1;         /* Automatically sizes into remaining space */
-    overflow-y: hidden;   /* Shuts off internal grid overflow scroll bars entirely */
-    overflow-x: hidden;
 }
 
 /* Responsive matrices updates */
@@ -439,7 +434,6 @@ img {
     .formula-bar { flex-wrap: wrap; }
     
     /* Fallback overflow allowed only for small screen sizes */
-    .game-area { overflow-y: auto; } 
     .game-area::-webkit-scrollbar { width: 5px; }
     .game-area::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
 }
