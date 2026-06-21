@@ -7,26 +7,27 @@
     --shape-bg: #ffffff;
     --puzzle-shadow: drop-shadow(-4px 4px 5px rgba(0, 0, 0, 0.15));
     
-    /* Structural variables for larger row formats */
-    --cell-size: 52px;
-    --row-height: 76px;
+    /* Optimized parameters: kept rows thick ("jaadi") but adjusted to prevent cut-offs */
+    --cell-size: 54px;
+    --row-height: 80px;
     --formula-size: 44px;
 }
 
 html, body {
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden; /* Fully locks scrolling on body and html */
+    height: 100vh;
+    width: 100vw;
 }
 
 body {
     background-color: var(--bg-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
+    justify-content: flex-start;
 }
 
 * {
@@ -39,9 +40,9 @@ img {
 }
 
 .game-title {
-    width: min(600px, 90%);
+    width: min(500px, 80%);
     display: block;
-    margin: 0 auto 20px;
+    margin: 0 auto 10px;
 }
 
 .setup-screen, .transition-screen { 
@@ -51,21 +52,25 @@ img {
     border-radius: 20px;
     max-width: 500px;
     width: min(500px, 95%);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
 .btn {
     background-color: var(--green-row);
     color: white;
     border: none;
-    padding: 12px 24px;
-    font-size: 16px;
+    padding: 12px 20px;
+    font-size: 15px;
     font-weight: bold;
     border-radius: 8px;
     cursor: pointer;
-    margin: 8px;
     box-shadow: 0 4px rgba(0,0,0,0.1);
     transition: all 0.1s;
-    min-height: 48px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 .btn:active { 
@@ -80,13 +85,13 @@ img {
 }
 
 .status-banner {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-    margin: 15px 0;
+    margin: 10px 0;
     color: #222;
     text-align: center;
-    background: rgba(255, 255, 255, 0.6);
-    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 8px 20px;
     border-radius: 30px;
     max-width: 800px;
 }
@@ -94,18 +99,19 @@ img {
 /* --- Individual Player Board Wrapper --- */
 .player-board {
     background: #fffdf3;
-    padding: 25px 20px;
+    padding: 20px;
     border-radius: 20px;
     border: 2px solid #ffcc99;
     position: relative;
     box-shadow: 0 6px 12px rgba(0,0,0,0.03);
     width: 100%;
+    overflow: hidden;
 }
 
 .player-name {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     text-transform: uppercase;
     color: #444;
     letter-spacing: 1px;
@@ -114,14 +120,14 @@ img {
 /* --- Fixed 12-Column Grid Rows --- */
 .row-container {
     width: 100%;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .grid-row {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 0px; 
-    padding: 5px 0;
+    padding: 4px 0;
     align-items: center;
     height: var(--row-height);
     width: 100%;
@@ -134,7 +140,7 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
     color: #333;
     user-select: none;
@@ -190,44 +196,38 @@ img {
     border-bottom-right-radius: 20px;
 }
 
-/* --- Controls & Dynamic 3D Dice Scene Panel --- */
+/* --- Controls Panel --- */
 .dice-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #fff;
-    padding: 20px 40px;
+    padding: 15px 30px;
     border-radius: 25px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.06);
     width: 100%;
-    max-width: 1200px;
-    margin-bottom: 25px;
+    max-width: 1100px; 
+    margin-bottom: 15px;
     gap: 20px;
+    flex-shrink: 0; /* Prevents control box from smashing up when screen heights decrease */
 }
 
 .dice-container { 
     display: flex; 
     gap: 30px; 
-    padding: 10px 0;
+    padding: 5px 0;
 }
 
-/* 3D Dice Container Wrap Scene */
 .dice-cube-scene {
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
     perspective: 300px;
     cursor: pointer;
     transition: transform 0.2s;
 }
 
-.dice-cube-scene:hover {
-    transform: scale(1.05);
-}
-
-.dice-cube-scene.deselected {
-    opacity: 0.4;
-    filter: grayscale(40%);
-}
+.dice-cube-scene:hover { transform: scale(1.05); }
+.dice-cube-scene.deselected { opacity: 0.3; filter: grayscale(50%); }
 
 .dice-cube {
     width: 100%;
@@ -244,26 +244,25 @@ img {
 
 .dice-pane {
     position: absolute;
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
     border: 2px solid rgba(0,0,0,0.15);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 22px;
+    font-size: 20px;
     color: white;
-    box-shadow: inset 0 0 12px rgba(255,255,255,0.2), 0 0 4px rgba(0,0,0,0.1);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.2);
 }
 
-.dice-pane.front  { transform: rotateY(0deg) translateZ(30px); }
-.dice-pane.back   { transform: rotateY(180deg) translateZ(30px); }
-.dice-pane.left   { transform: rotateY(-90deg) translateZ(30px); }
-.dice-pane.right  { transform: rotateY(90deg) translateZ(30px); }
-.dice-pane.top    { transform: rotateX(90deg) translateZ(30px); }
-.dice-pane.bottom { transform: rotateX(-90deg) translateZ(30px); }
+.dice-pane.front  { transform: rotateY(0deg) translateZ(27px); }
+.dice-pane.back   { transform: rotateY(180deg) translateZ(27px); }
+.dice-pane.left   { transform: rotateY(-90deg) translateZ(27px); }
+.dice-pane.right  { transform: rotateY(90deg) translateZ(27px); }
+.dice-pane.top    { transform: rotateX(90deg) translateZ(27px); }
+.dice-pane.bottom { transform: rotateX(-90deg) translateZ(27px); }
 
 .orange-die-cube .dice-pane { background-color: var(--green-row); }
 .yellow-die-cube .dice-pane { background-color: var(--yellow-row); }
@@ -275,15 +274,22 @@ img {
 }
 
 .roll-result {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: bold;
     color: #222;
-    min-width: 80px;
+    min-width: 65px;
     text-align: center;
     background: #fdfbe7;
-    padding: 5px 15px;
+    padding: 5px;
     border-radius: 12px;
     border: 2px solid #eed6b3;
+}
+
+.control-buttons-group {
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    gap: 10px;
 }
 
 /* --- Missteps Panel --- */
@@ -292,12 +298,12 @@ img {
     justify-content: center;
     align-items: center;
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 .misstep-box {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border: 2px dashed #cc5a00;
     background: #f7d9c4;
     display: flex;
@@ -315,16 +321,16 @@ img {
     border-style: solid; 
 }
 
-/* --- FIXED: Clean, Centered, Proportional Formula Bar --- */
+/* --- Proportional Formula Bar --- */
 .formula-bar {
     background-color: #f58639;
     border-radius: 20px;
-    padding: 15px 25px;
+    padding: 12px 25px;
     display: flex;
     align-items: center;
-    justify-content: center; /* FIXED: Centers everything globally to eliminate empty gaps */
-    gap: 18px;
-    margin-top: 25px;
+    justify-content: center; 
+    gap: 15px;
+    margin-top: 15px;
     width: 100%;
     filter: var(--puzzle-shadow);
 }
@@ -353,7 +359,7 @@ img {
 }
 
 .formula-operator {
-    font-size: 26px;
+    font-size: 24px;
     color: var(--shape-bg);
     font-weight: bold;
     user-select: none;
@@ -376,83 +382,64 @@ img {
 .formula-result {
     background-color: var(--shape-bg);
     border-radius: 14px;
-    height: 48px;
-    width: 140px;
+    height: 44px;
+    width: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: #222;
     box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-    border: 2px solid rgba(255,255,255,0.4);
 }
 
+/* --- Rules Modal --- */
+.rules-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.rules-content {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    text-align: left;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+/* --- FIXED: Scalable viewport flexbox container to eliminate layout scrollbars --- */
 .game-area {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 15px;
     width: 100%;
-    max-width: 1500px;
+    max-width: 1100px; 
+    flex-grow: 1;         /* Automatically sizes into remaining space */
+    overflow-y: hidden;   /* Shuts off internal grid overflow scroll bars entirely */
+    overflow-x: hidden;
 }
 
-/* ==========================
-   RESPONSIVE MEDIA BREAKPOINTS
-   ========================== */
+/* Responsive matrices updates */
 @media (max-width: 992px) {
-    :root {
-        --cell-size: 42px;
-        --row-height: 64px;
-        --formula-size: 38px;
-    }
-    .player-board { padding: 18px; }
-    .dice-panel { padding: 15px 25px; }
-    .formula-bar { padding: 15px 20px; gap: 12px; }
-    .formula-result { width: 110px; font-size: 20px; }
+    :root { --cell-size: 42px; --row-height: 64px; --formula-size: 38px; }
+    .dice-panel { padding: 12px 20px; }
 }
-
 @media (max-width: 768px) {
-    body { padding: 10px; }
-    :root {
-        --cell-size: 32px;
-        --row-height: 52px;
-        --formula-size: 32px;
-    }
-    .player-board { padding: 12px; border-radius: 12px; }
-    .player-name { font-size: 18px; margin-bottom: 12px; }
-    .status-banner { font-size: 16px; }
+    :root { --cell-size: 32px; --row-height: 52px; --formula-size: 32px; }
+    .dice-panel { flex-direction: column; height: auto; gap: 15px; }
+    .control-buttons-group { flex-wrap: wrap; justify-content: center; }
+    .formula-bar { flex-wrap: wrap; }
     
-    .dice-panel {
-        flex-direction: column;
-        align-items: center;
-        padding: 15px;
-    }
-    .dice-container { gap: 15px; }
-    .btn { width: 100%; margin: 5px 0; }
-
-    .formula-bar { 
-        flex-wrap: wrap;
-        gap: 12px; 
-        padding: 15px; 
-    }
-    .formula-group { padding: 4px 8px; }
-    .formula-operator { font-size: 20px; }
-    .formula-result { width: 100%; max-width: 200px; margin-top: 5px; }
-}
-
-@media (max-width: 480px) {
-    :root {
-        --cell-size: 24px;
-        --row-height: 42px;
-        --formula-size: 26px;
-    }
-    .cell { font-size: 14px; }
-    .dice-cube-scene { width: 45px; height: 45px; }
-    .dice-pane { width: 45px; height: 45px; font-size: 16px; }
-    .dice-pane.front  { transform: rotateY(0deg) translateZ(22.5px); }
-    .dice-pane.back   { transform: rotateY(180deg) translateZ(22.5px); }
-    .dice-pane.left   { transform: rotateY(-90deg) translateZ(22.5px); }
-    .dice-pane.right  { transform: rotateY(90deg) translateZ(22.5px); }
-    .dice-pane.top    { transform: rotateX(90deg) translateZ(22.5px); }
-    .dice-pane.bottom { transform: rotateX(-90deg) translateZ(22.5px); }
+    /* Fallback overflow allowed only for small screen sizes */
+    .game-area { overflow-y: auto; } 
+    .game-area::-webkit-scrollbar { width: 5px; }
+    .game-area::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
 }
