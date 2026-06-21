@@ -15,7 +15,7 @@
         <button class="btn" onclick="startGame('PvP')">Human vs Human (Local)</button>
         <button class="btn" onclick="startGame('Ai')">Human vs AI</button>
         <br/>
-        <button class="btn" onclick="showRules()" style="background-color: #f58639; margin-top: 15px;">How to Play / Rules</button>
+        <button class="btn" onclick="showRules()" style="background-color: #f58639; margin-top: 15px;">Rules</button>
     </div>
 
     <div class="rules-overlay" id="rulesModal" style="display:none;">
@@ -81,9 +81,9 @@
 
         <div class="control-buttons-group">
             <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
-            <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777;">Pass Turn</button>
             <button class="btn" onclick="startGame(gameMode)" style="background-color:#fec53b;">Restart Game</button>
             <button class="btn" onclick="resetToHome()" style="background-color:#cc5a00;">End Game</button>
+            <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777;">Pass Turn</button>
         </div>
     </div>
 
