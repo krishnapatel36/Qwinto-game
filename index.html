@@ -9,10 +9,28 @@
 <body>
 
     <img src="title.png" class="game-title" />
+    
     <div class="setup-screen" id="setupScreen">
         <p style="font-size: 18px; font-weight: 500;">Choose your game format:</p>
         <button class="btn" onclick="startGame('PvP')">Human vs Human (Local)</button>
         <button class="btn" onclick="startGame('Ai')">Human vs AI</button>
+        <br/>
+        <button class="btn" onclick="showRules()" style="background-color: #f58639; margin-top: 15px;">How to Play / Rules</button>
+    </div>
+
+    <div class="rules-overlay" id="rulesModal" style="display:none;">
+        <div class="rules-content">
+            <h2>Qwinto Game Rules</h2>
+            <ul>
+                <li><strong>Objective:</strong> Fill your rows with numbers from left to right in strictly increasing numerical order.</li>
+                <li><strong>Dice Selection:</strong> Choose 1 to 3 dice to roll. You can only enter values into rows whose matching color die was rolled.</li>
+                <li><strong>Placement Constraint:</strong> No two rows can contain the exact same number in the same column alignment.</li>
+                <li><strong>Scoring Columns:</strong> If an entire vertical column of 3 cells is completed, you score the full value of the cell located inside the pentagon space!</li>
+                <li><strong>Scoring Rows:</strong> Filled rows earn points equal to the rightmost number. Unfinished rows score 1 point per filled square.</li>
+                <li><strong>Misstep Penalties:</strong> If you roll the dice on your turn and cannot place the sum anywhere, you must click 'Pass' to accept a Misstep (-5 points).</li>
+            </ul>
+            <button class="btn" onclick="closeRules()" style="display:block; margin: 20px auto 0;">Close Rules</button>
+        </div>
     </div>
 
     <div class="transition-screen" id="transitionScreen" style="display:none;">
@@ -58,9 +76,15 @@
                 </div>
             </div>
         </div>
-        <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+        
         <div class="roll-result" id="rollResult">-</div>
-        <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777; box-shadow: 0 4px #555;">Pass Turn</button>
+
+        <div class="control-buttons-group">
+            <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+            <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777;">Pass Turn</button>
+            <button class="btn" onclick="startGame(gameMode)" style="background-color:#fec53b;">Restart Game</button>
+            <button class="btn" onclick="resetToHome()" style="background-color:#cc5a00;">End Game</button>
+        </div>
     </div>
 
     <div class="game-area" id="gameArea"></div>
