@@ -1,11 +1,21 @@
 :root {
     --bg-color: #fdfbe7;
-    --orange-row: #ff8827;
-    --yellow-row: #ffbc3b;
-    --purple-row: #9b5de5;
+    --green-row: #8bc75c;
+    --yellow-row: #fec53b;
+    --blue-row: #7fd1e3;
     --disabled-color: #ccc;
     --shape-bg: #ffffff;
     --puzzle-shadow: drop-shadow(-4px 4px 5px rgba(0, 0, 0, 0.15));
+    
+    /* Structural variables for larger row formats */
+    --cell-size: 52px;
+    --row-height: 76px;
+    --formula-size: 44px;
+}
+
+html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 body {
@@ -19,24 +29,32 @@ body {
     min-height: 100vh;
 }
 
-h1 { 
-    color: #333; 
-    margin-bottom: 5px; 
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.game-title {
+    width: min(600px, 90%);
+    display: block;
+    margin: 0 auto 20px;
 }
 
 .setup-screen, .transition-screen { 
     text-align: center; 
-    margin: 40px 0; 
     background: white;
     padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    max-width: 400px;
-    width: 100%;
+    max-width: 500px;
+    width: min(500px, 95%);
 }
 
 .btn {
-    background-color: var(--orange-row);
+    background-color: var(--green-row);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -45,8 +63,9 @@ h1 {
     border-radius: 8px;
     cursor: pointer;
     margin: 8px;
-    box-shadow: 0 4px #d66f1b;
+    box-shadow: 0 4px rgba(0,0,0,0.1);
     transition: all 0.1s;
+    min-height: 48px;
 }
 
 .btn:active { 
@@ -54,31 +73,32 @@ h1 {
     box-shadow: none; 
 }
 
+.btn:disabled {
+    background-color: #bbb;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .status-banner {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
     margin: 15px 0;
     color: #222;
     text-align: center;
-}
-
-.game-area {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    width: 100%;
-    max-width: 950px;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 10px 20px;
+    border-radius: 30px;
+    max-width: 800px;
 }
 
 /* --- Individual Player Board Wrapper --- */
 .player-board {
     background: #fffdf3;
-    padding: 25px;
+    padding: 25px 20px;
     border-radius: 20px;
     border: 2px solid #ffcc99;
     position: relative;
     box-shadow: 0 6px 12px rgba(0,0,0,0.03);
-    box-sizing: border-box;
     width: 100%;
 }
 
@@ -91,36 +111,33 @@ h1 {
     letter-spacing: 1px;
 }
 
-/* --- Fixed 12-Column Grid Rows (Completely Transparent Track) --- */
+/* --- Fixed 12-Column Grid Rows --- */
 .row-container {
     width: 100%;
-    margin-bottom: 12px;
-    box-sizing: border-box;
+    margin-bottom: 16px;
 }
 
 .grid-row {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 0px; /* Fused together to form a solid connected bar strip */
+    gap: 0px; 
     padding: 5px 0;
     align-items: center;
-    height: 60px;
-    box-sizing: border-box;
+    height: var(--row-height);
     width: 100%;
 }
 
-/* --- Interactive Shapes & Background Generation Cells --- */
+/* --- Interactive Shapes & Cells --- */
 .cell {
-    height: 50px;
+    height: 100%;
     width: 100%; 
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     color: #333;
     user-select: none;
-    box-sizing: border-box;
 }
 
 .cell.has-bg {
@@ -132,15 +149,13 @@ h1 {
     cursor: pointer;
 }
 
-/* Masking colors onto individual track matrices */
-.orange-cell { background-color: var(--orange-row); }
+.orange-cell { background-color: var(--green-row); }
 .yellow-cell { background-color: var(--yellow-row); }
-.purple-cell { background-color: var(--purple-row); }
+.purple-cell { background-color: var(--blue-row); }
 
-/* Internal inner shape cutouts configuration matching original layout */
 .cell-inner {
-    width: 38px;
-    height: 38px;
+    width: var(--cell-size);
+    height: var(--cell-size);
     background-color: var(--shape-bg);
     display: flex;
     align-items: center;
@@ -152,7 +167,6 @@ h1 {
 .pentagon { clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); }
 .empty-slot { visibility: hidden; pointer-events: none; }
 
-/* Filled Cell Text/Visual State */
 .cell.filled .cell-inner { 
     background-color: #333; 
     color: white; 
@@ -163,74 +177,122 @@ h1 {
     background-color: #fff3db;
 }
 
-/* --- Smooth Dynamic Pill Borders for the Row Extremities --- */
-/* Left side corners round-off rule tracking */
+/* --- Rounded Corners for Rows --- */
 .grid-row .cell.empty-slot + .cell.has-bg,
 .grid-row .cell.has-bg:first-child {
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
 }
 
-/* Right side corners round-off rule tracking */
 .grid-row .cell.has-bg:has(+ .empty-slot),
 .grid-row .cell.has-bg:last-child {
-    border-top-right-radius: 16px;
-    border-bottom-right-radius: 16px;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
 
-/* --- Controls & Dice Interface --- */
+/* --- Controls & Dynamic 3D Dice Scene Panel --- */
 .dice-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #fff;
-    padding: 15px 30px;
-    border-radius: 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    padding: 20px 40px;
+    border-radius: 25px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
     width: 100%;
-    max-width: 950px;
-    box-sizing: border-box;
-    margin-bottom: 20px;
+    max-width: 1200px;
+    margin-bottom: 25px;
+    gap: 20px;
 }
 
 .dice-container { 
     display: flex; 
-    gap: 15px; 
+    gap: 30px; 
+    padding: 10px 0;
 }
 
-.die {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
+/* 3D Dice Container Wrap Scene */
+.dice-cube-scene {
+    width: 60px;
+    height: 60px;
+    perspective: 300px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.dice-cube-scene:hover {
+    transform: scale(1.05);
+}
+
+.dice-cube-scene.deselected {
+    opacity: 0.4;
+    filter: grayscale(40%);
+}
+
+.dice-cube {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(-20deg) rotateY(30deg);
+    transition: transform 0.15s ease-out;
+}
+
+.dice-cube.rolling {
+    animation: spinDiceCube 1.2s cubic-bezier(0.2, 0.8, 0.25, 1) infinite;
+}
+
+.dice-pane {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(0,0,0,0.15);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    color: white;
     font-weight: bold;
-    cursor: pointer;
-    border: 3px solid transparent;
-    user-select: none;
+    font-size: 22px;
+    color: white;
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.2), 0 0 4px rgba(0,0,0,0.1);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
-.die.orange-die { background-color: var(--orange-row); }
-.die.yellow-die { background-color: var(--yellow-row); }
-.die.purple-die { background-color: var(--purple-row); }
-.die.selected { border-color: #333; transform: translateY(-4px); }
+.dice-pane.front  { transform: rotateY(0deg) translateZ(30px); }
+.dice-pane.back   { transform: rotateY(180deg) translateZ(30px); }
+.dice-pane.left   { transform: rotateY(-90deg) translateZ(30px); }
+.dice-pane.right  { transform: rotateY(90deg) translateZ(30px); }
+.dice-pane.top    { transform: rotateX(90deg) translateZ(30px); }
+.dice-pane.bottom { transform: rotateX(-90deg) translateZ(30px); }
+
+.orange-die-cube .dice-pane { background-color: var(--green-row); }
+.yellow-die-cube .dice-pane { background-color: var(--yellow-row); }
+.purple-die-cube .dice-pane { background-color: var(--blue-row); }
+
+@keyframes spinDiceCube {
+    0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+    100% { transform: rotateX(720deg) rotateY(1080deg) rotateZ(360deg); }
+}
 
 .roll-result {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: bold;
     color: #222;
-    min-width: 60px;
+    min-width: 80px;
     text-align: center;
+    background: #fdfbe7;
+    padding: 5px 15px;
+    border-radius: 12px;
+    border: 2px solid #eed6b3;
 }
 
 /* --- Missteps Panel --- */
 .misstep-container {
     display: flex;
-    gap: 6px;
+    justify-content: center;
     align-items: center;
+    gap: 8px;
+    margin-top: 10px;
 }
 
 .misstep-box {
@@ -253,54 +315,53 @@ h1 {
     border-style: solid; 
 }
 
-.score-display {
-    font-size: 20px;
-    font-weight: bold;
-    color: #444;
-}
-
-/* --- Bottom Formula Bar --- */
+/* --- FIXED: Clean, Centered, Proportional Formula Bar --- */
 .formula-bar {
-    background-color: var(--orange-row);
-    border-radius: 18px;
-    padding: 12px 20px;
+    background-color: #f58639;
+    border-radius: 20px;
+    padding: 15px 25px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 20px;
+    justify-content: center; /* FIXED: Centers everything globally to eliminate empty gaps */
+    gap: 18px;
+    margin-top: 25px;
     width: 100%;
-    box-sizing: border-box;
     filter: var(--puzzle-shadow);
 }
 
 .formula-group {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.08);
+    padding: 6px 12px;
+    border-radius: 14px;
 }
 
 .formula-box {
     background-color: var(--shape-bg);
     border-radius: 10px;
-    width: 42px;
-    height: 42px;
+    width: var(--formula-size);
+    height: var(--formula-size);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
     font-size: 16px;
     color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 .formula-operator {
-    font-size: 32px;
+    font-size: 26px;
     color: var(--shape-bg);
     font-weight: bold;
     user-select: none;
 }
 
 .formula-pentagon {
-    width: 42px;
-    height: 42px;
+    width: var(--formula-size);
+    height: var(--formula-size);
     background-color: var(--shape-bg);
     clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
     display: flex;
@@ -309,28 +370,89 @@ h1 {
     font-weight: bold;
     font-size: 16px;
     color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 .formula-result {
     background-color: var(--shape-bg);
     border-radius: 14px;
-    flex-grow: 1;
-    height: 44px;
-    max-width: 180px;
-    margin-left: auto;
+    height: 48px;
+    width: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
     color: #222;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    border: 2px solid rgba(255,255,255,0.4);
 }
 
-/* Make final comparison layout clear at the end */
 .game-area {
     display: flex;
     flex-direction: column;
     gap: 30px;
     width: 100%;
-    max-width: 950px;
+    max-width: 1500px;
+}
+
+/* ==========================
+   RESPONSIVE MEDIA BREAKPOINTS
+   ========================== */
+@media (max-width: 992px) {
+    :root {
+        --cell-size: 42px;
+        --row-height: 64px;
+        --formula-size: 38px;
+    }
+    .player-board { padding: 18px; }
+    .dice-panel { padding: 15px 25px; }
+    .formula-bar { padding: 15px 20px; gap: 12px; }
+    .formula-result { width: 110px; font-size: 20px; }
+}
+
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    :root {
+        --cell-size: 32px;
+        --row-height: 52px;
+        --formula-size: 32px;
+    }
+    .player-board { padding: 12px; border-radius: 12px; }
+    .player-name { font-size: 18px; margin-bottom: 12px; }
+    .status-banner { font-size: 16px; }
+    
+    .dice-panel {
+        flex-direction: column;
+        align-items: center;
+        padding: 15px;
+    }
+    .dice-container { gap: 15px; }
+    .btn { width: 100%; margin: 5px 0; }
+
+    .formula-bar { 
+        flex-wrap: wrap;
+        gap: 12px; 
+        padding: 15px; 
+    }
+    .formula-group { padding: 4px 8px; }
+    .formula-operator { font-size: 20px; }
+    .formula-result { width: 100%; max-width: 200px; margin-top: 5px; }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --cell-size: 24px;
+        --row-height: 42px;
+        --formula-size: 26px;
+    }
+    .cell { font-size: 14px; }
+    .dice-cube-scene { width: 45px; height: 45px; }
+    .dice-pane { width: 45px; height: 45px; font-size: 16px; }
+    .dice-pane.front  { transform: rotateY(0deg) translateZ(22.5px); }
+    .dice-pane.back   { transform: rotateY(180deg) translateZ(22.5px); }
+    .dice-pane.left   { transform: rotateY(-90deg) translateZ(22.5px); }
+    .dice-pane.right  { transform: rotateY(90deg) translateZ(22.5px); }
+    .dice-pane.top    { transform: rotateX(90deg) translateZ(22.5px); }
+    .dice-pane.bottom { transform: rotateX(-90deg) translateZ(22.5px); }
 }
