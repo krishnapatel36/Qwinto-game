@@ -8,8 +8,7 @@
 </head>
 <body>
 
-    <img src="title.png"/>
-    
+    <img src="title.png" class="game-title" />
     <div class="setup-screen" id="setupScreen">
         <p style="font-size: 18px; font-weight: 500;">Choose your game format:</p>
         <button class="btn" onclick="startGame('PvP')">Human vs Human (Local)</button>
@@ -25,11 +24,38 @@
 
     <div class="dice-panel" id="dicePanel" style="display:none;">
         <div>
-            <span style="font-size: 13px; display:block; color:#777; margin-bottom:4px;">Click dice to toggle colors:</span>
+            <span style="font-size: 13px; display:block; color:#777; margin-bottom:8px; font-weight: 600;">Toggle active dice to roll:</span>
             <div class="dice-container">
-                <div class="die orange-die selected" data-color="orange" onclick="toggleDie(this)">O</div>
-                <div class="die yellow-die selected" data-color="yellow" onclick="toggleDie(this)">Y</div>
-                <div class="die purple-die selected" data-color="purple" onclick="toggleDie(this)">P</div>
+                <div class="dice-cube-scene orange-die-cube" data-color="orange" onclick="toggleDie(this)">
+                    <div class="dice-cube">
+                        <div class="dice-pane front">1</div>
+                        <div class="dice-pane back">2</div>
+                        <div class="dice-pane left">3</div>
+                        <div class="dice-pane right">4</div>
+                        <div class="dice-pane top">5</div>
+                        <div class="dice-pane bottom">6</div>
+                    </div>
+                </div>
+                <div class="dice-cube-scene yellow-die-cube" data-color="yellow" onclick="toggleDie(this)">
+                    <div class="dice-cube">
+                        <div class="dice-pane front">1</div>
+                        <div class="dice-pane back">2</div>
+                        <div class="dice-pane left">3</div>
+                        <div class="dice-pane right">4</div>
+                        <div class="dice-pane top">5</div>
+                        <div class="dice-pane bottom">6</div>
+                    </div>
+                </div>
+                <div class="dice-cube-scene purple-die-cube" data-color="purple" onclick="toggleDie(this)">
+                    <div class="dice-cube">
+                        <div class="dice-pane front">1</div>
+                        <div class="dice-pane back">2</div>
+                        <div class="dice-pane left">3</div>
+                        <div class="dice-pane right">4</div>
+                        <div class="dice-pane top">5</div>
+                        <div class="dice-pane bottom">6</div>
+                    </div>
+                </div>
             </div>
         </div>
         <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
