@@ -42,6 +42,23 @@ class Player {
     }
 }
 
+function showRules() {
+    document.getElementById('rulesModal').style.display = 'flex';
+}
+
+function closeRules() {
+    document.getElementById('rulesModal').style.display = 'none';
+}
+
+function resetToHome() {
+    isGameOver = false;
+    players = [];
+    document.getElementById('setupScreen').style.display = 'block';
+    document.getElementById('statusBanner').style.display = 'none';
+    document.getElementById('dicePanel').style.display = 'none';
+    document.getElementById('gameArea').innerHTML = '';
+}
+
 function startGame(mode) {
     gameMode = mode;
     isGameOver = false;
@@ -138,11 +155,11 @@ function promptCurrentEvaluatingPlayer() {
     if (evaluationPhase === activePlayerIndex) {
         document.getElementById('passBtn').innerText = "Take Misstep Penalty";
         document.getElementById('statusBanner').innerText = 
-            `[ROLLER] ${evaluatingPlayer.name}: You rolled ${currentRollTotal}! Place it on a valid cell or accept a Misstep penalty.`;
+            `[ROLLER] ${evaluatingPlayer.name}: You rolled ${currentRollTotal}! Place it on your board or take a Misstep penalty.`;
     } else {
         document.getElementById('passBtn').innerText = "Skip / Do Nothing";
         document.getElementById('statusBanner').innerText = 
-            `[PASSIVE] ${evaluatingPlayer.name}: You can optionally use the AI's roll of ${currentRollTotal}.`;
+            `[PASSIVE] ${evaluatingPlayer.name}: You can optionally choose to use this roll value of ${currentRollTotal}.`;
     }
     
     renderActiveBoard();
@@ -163,7 +180,7 @@ function handleCellClick(color, index) {
         
         advanceEvaluation();
     } else {
-        alert("Invalid Move! Numbers must strictly increase from left to right, and no duplicate values are allowed in the same column alignment.");
+        alert("Invalid Move! Numbers must increase from left to right, and columns cannot contain duplicates.");
     }
 }
 
@@ -182,11 +199,15 @@ function handlePassTurn() {
     advanceEvaluation();
 }
 
-// FIXED: Added evaluation phase validation checks to prevent structural recursion infinite loops
+// FIXED: Corrected conditions to ensure human player gets their passive action when AI rolls
 function advanceEvaluation() {
-    if (gameMode === 'Ai' && evaluationPhase === activePlayerIndex && evaluationPhase === 0) {
-        // Human player rolled and resolved, pass passive evaluation choice context to AI (index 1)
-        evaluationPhase = 1; 
+    if (gameMode === 'Ai' && activePlayerIndex === 1 && evaluationPhase === 1) {
+        // AI rolled first, now pass evaluation turn to the human player (index 0)
+        evaluationPhase = 0; 
+        promptCurrentEvaluatingPlayer();
+    } else if (gameMode === 'Ai' && activePlayerIndex === 0 && evaluationPhase === 0) {
+        // Human rolled first, now pass evaluation turn to the AI (index 1)
+        evaluationPhase = 1;
         promptCurrentEvaluatingPlayer();
     } else if (gameMode === 'PvP' && evaluationPhase === activePlayerIndex) {
         evaluationPhase = (activePlayerIndex + 1) % players.length;
@@ -199,7 +220,6 @@ function advanceEvaluation() {
         document.getElementById('transitionMessage').innerText = `Pass device to ${players[evaluationPhase].name} to use the roll of ${currentRollTotal}`;
         document.getElementById('transitionScreen').style.display = 'block';
     } else {
-        // Loop break condition satisfied: both human and AI options resolved for this turn cycle
         checkAndCleanTurnCycle();
     }
 }
@@ -317,7 +337,7 @@ function endGame() {
     
     let winnerText = "🏆 Game Over! Final Results:\n";
     players.forEach(p => {
-        winnerText += `${p.name}: ${p.score} points\n`;
+        winnerText += `${p.name}: ${p.score} points \n`;
     });
     document.getElementById('statusBanner').innerText = winnerText;
 
@@ -467,7 +487,7 @@ function generateBoardHTML(player) {
     summary.style.display = 'flex';
     summary.style.alignItems = 'center';
     summary.style.justifyContent = 'center';
-    summary.style.marginTop = '20px';
+    summary.style.marginTop = '10px';
 
     let misstepHtml = '';
     for(let m = 1; m <= 4; m++) {
@@ -521,14 +541,25 @@ function renderActiveBoard() {
     area.appendChild(activePlayerBoard);
 }
 
+// FIXED: Shows both scorecards explicitly in a vertical list format
 function renderAllBoardsAtEnd() {
     const area = document.getElementById('gameArea');
     area.innerHTML = '';
-    area.style.flexDirection = 'column';
-    area.style.gap = '40px';
+    area.style.flexDirection = 'column'; 
+    area.style.gap = '25px';
 
     players.forEach(player => {
         const finishedBoard = generateBoardHTML(player);
         area.appendChild(finishedBoard);
     });
+
+    // Append dynamic exit actions directly into the result feed view panel
+    const actionBlock = document.createElement('div');
+    actionBlock.style.textAlign = 'center';
+    actionBlock.style.marginTop = '10px';
+    actionBlock.innerHTML = `
+        <button class="btn" onclick="startGame('${gameMode}')">Restart Game</button>
+        <button class="btn" onclick="resetToHome()" style="background-color: #777;">Return Home</button>
+    `;
+    area.appendChild(actionBlock);
 }
