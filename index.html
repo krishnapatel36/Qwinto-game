@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <img src="title.png" class="game-title" />
+    <img src="images/title.png" class="game-title" />
     
     <div class="setup-screen" id="setupScreen">
         <p style="font-size: 18px; font-weight: 500;">Choose your game format:</p>
@@ -38,7 +38,7 @@
         <button class="btn" onclick="revealNextTurn()">Ready to Play</button>
     </div>
 
-    <div class="status-banner" id="statusBanner" style="display:none;">Select a Mode to Start Playing!</div>
+    <div class="status-banner" id="statusBanner" style="display:none;"></div>
 
     <div class="dice-panel" id="dicePanel" style="display:none;">
         <div>
@@ -81,8 +81,6 @@
 
         <div class="control-buttons-group">
             <button class="btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
-            <button class="btn" onclick="startGame(gameMode)" style="background-color:#fec53b;">Restart Game</button>
-            <button class="btn" onclick="resetToHome()" style="background-color:#cc5a00;">End Game</button>
             <button class="btn" id="passBtn" onclick="handlePassTurn()" style="background-color:#777;">Pass Turn</button>
         </div>
     </div>
